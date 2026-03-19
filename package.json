@@ -1,0 +1,37 @@
+{
+  "name": "emergency-response-system",
+  "version": "1.0.0",
+  "description": "National Emergency Response and Dispatch Coordination Platform",
+  "main": "index.js",
+  "scripts": {
+    "install:all": "cd services/auth-service && npm install && cd ../incident-service && npm install && cd ../dispatch-service && npm install && cd ../analytics-service && npm install",
+    "start": "concurrently \"npm run auth\" \"npm run incident\" \"npm run dispatch\" \"npm run analytics\"",
+    "auth": "cd services/auth-service && npm start",
+    "incident": "cd services/incident-service && npm start",
+    "dispatch": "cd services/dispatch-service && npm start",
+    "analytics": "cd services/analytics-service && npm start",
+    "dev": "concurrently --names \"AUTH,INCIDENT,DISPATCH,ANALYTICS\" --prefix-colors \"blue,green,yellow,magenta\" \"npm run auth:dev\" \"npm run incident:dev\" \"npm run dispatch:dev\" \"npm run analytics:dev\"",
+    "auth:dev": "cd services/auth-service && npm run dev",
+    "incident:dev": "cd services/incident-service && npm run dev",
+    "dispatch:dev": "cd services/dispatch-service && npm run dev",
+    "analytics:dev": "cd services/analytics-service && npm run dev"
+  },
+  "keywords": [
+    "emergency",
+    "dispatch",
+    "microservices",
+    "coordination"
+  ],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "concurrently": "^8.2.0",
+    "docx": "^9.6.1"
+  },
+  "dependencies": {
+    "amqplib": "^0.10.9",
+    "axios": "^1.13.6",
+    "joi": "^17.13.3",
+    "jsonwebtoken": "^9.0.3"
+  }
+}

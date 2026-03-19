@@ -1,0 +1,1370 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Phase 2 Backend Report – Emergency Response Coordination Platform</title>
+<style>
+  /* ── Reset & Base ───────────────────────────────────────────── */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Segoe UI', Arial, sans-serif;
+    font-size: 11pt;
+    line-height: 1.6;
+    color: #1a1a2e;
+    background: #fff;
+  }
+
+  /* ── Cover Page ─────────────────────────────────────────────── */
+  .cover {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+    color: #fff;
+    text-align: center;
+    padding: 60px 40px;
+    page-break-after: always;
+  }
+  .cover .badge {
+    background: rgba(255,255,255,0.12);
+    border: 1px solid rgba(255,255,255,0.3);
+    border-radius: 30px;
+    padding: 6px 20px;
+    font-size: 9pt;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-bottom: 32px;
+  }
+  .cover h1 {
+    font-size: 28pt;
+    font-weight: 800;
+    line-height: 1.2;
+    margin-bottom: 12px;
+    background: linear-gradient(90deg, #fff, #a8edea);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .cover h2 {
+    font-size: 14pt;
+    font-weight: 400;
+    color: rgba(255,255,255,0.75);
+    margin-bottom: 48px;
+  }
+  .cover .meta-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px 48px;
+    text-align: left;
+    margin-bottom: 48px;
+    background: rgba(255,255,255,0.07);
+    padding: 28px 40px;
+    border-radius: 12px;
+    border: 1px solid rgba(255,255,255,0.15);
+  }
+  .cover .meta-grid .label {
+    font-size: 8pt;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: #a8edea;
+    margin-bottom: 2px;
+  }
+  .cover .meta-grid .value {
+    font-size: 11pt;
+    font-weight: 600;
+    color: #fff;
+  }
+  .cover .services {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  .cover .service-chip {
+    background: rgba(168,237,234,0.18);
+    border: 1px solid #a8edea;
+    border-radius: 8px;
+    padding: 8px 20px;
+    font-size: 10pt;
+    color: #a8edea;
+    font-weight: 600;
+  }
+
+  /* ── Page Layout ────────────────────────────────────────────── */
+  .page {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 50px 60px;
+  }
+
+  /* ── Section Headers ────────────────────────────────────────── */
+  h1.section-title {
+    font-size: 20pt;
+    font-weight: 800;
+    color: #302b63;
+    border-bottom: 3px solid #302b63;
+    padding-bottom: 8px;
+    margin: 48px 0 24px;
+  }
+  h1.section-title:first-child { margin-top: 0; }
+
+  h2 {
+    font-size: 14pt;
+    font-weight: 700;
+    color: #24243e;
+    margin: 32px 0 12px;
+    border-left: 4px solid #302b63;
+    padding-left: 12px;
+  }
+  h3 {
+    font-size: 11.5pt;
+    font-weight: 700;
+    color: #302b63;
+    margin: 22px 0 8px;
+  }
+  h4 {
+    font-size: 10.5pt;
+    font-weight: 700;
+    color: #555;
+    margin: 16px 0 6px;
+  }
+
+  p { margin-bottom: 10px; }
+
+  /* ── TOC ────────────────────────────────────────────────────── */
+  .toc {
+    background: #f8f8fc;
+    border: 1px solid #e0e0ef;
+    border-radius: 10px;
+    padding: 28px 36px;
+    margin-bottom: 32px;
+    page-break-after: always;
+  }
+  .toc h2 { margin-top: 0; border: none; padding: 0; font-size: 15pt; }
+  .toc ol { margin-left: 24px; }
+  .toc li { margin: 6px 0; font-size: 10.5pt; color: #302b63; }
+  .toc li.sub { margin-left: 20px; font-size: 10pt; color: #555; list-style-type: disc; }
+
+  /* ── Summary Cards ──────────────────────────────────────────── */
+  .card-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+    margin: 20px 0;
+  }
+  .card {
+    border-radius: 10px;
+    padding: 20px 24px;
+    border: 1px solid #e0e0ef;
+  }
+  .card.blue   { background: #eef2ff; border-color: #c7d2fe; }
+  .card.green  { background: #f0fdf4; border-color: #bbf7d0; }
+  .card.yellow { background: #fefce8; border-color: #fde68a; }
+  .card.purple { background: #faf5ff; border-color: #e9d5ff; }
+  .card .card-label { font-size: 8pt; letter-spacing: 1.5px; text-transform: uppercase; color: #888; margin-bottom: 6px; }
+  .card .card-value { font-size: 20pt; font-weight: 800; color: #302b63; }
+  .card .card-desc  { font-size: 9.5pt; color: #555; margin-top: 4px; }
+
+  /* ── Architecture Diagram ───────────────────────────────────── */
+  .arch-diagram {
+    background: #f8f8fc;
+    border: 1px solid #e0e0ef;
+    border-radius: 10px;
+    padding: 24px;
+    margin: 20px 0;
+    font-family: 'Courier New', monospace;
+    font-size: 9pt;
+    line-height: 1.8;
+    white-space: pre;
+    overflow: hidden;
+  }
+
+  /* ── Tables ─────────────────────────────────────────────────── */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 16px 0 24px;
+    font-size: 10pt;
+  }
+  thead tr { background: #302b63; color: #fff; }
+  thead th { padding: 10px 14px; text-align: left; font-weight: 600; }
+  tbody tr:nth-child(even) { background: #f8f8fc; }
+  tbody tr:hover { background: #eef2ff; }
+  td { padding: 9px 14px; border-bottom: 1px solid #e0e0ef; vertical-align: top; }
+  td code { background: #eef2ff; padding: 1px 5px; border-radius: 3px; font-size: 8.5pt; }
+
+  /* ── Code Blocks ────────────────────────────────────────────── */
+  pre {
+    background: #1e1e3f;
+    color: #a8edea;
+    border-radius: 8px;
+    padding: 18px 22px;
+    font-size: 8.5pt;
+    line-height: 1.7;
+    overflow: hidden;
+    margin: 12px 0 20px;
+    white-space: pre-wrap;
+    word-break: break-all;
+  }
+  code {
+    font-family: 'Courier New', Courier, monospace;
+  }
+  .inline-code {
+    background: #eef2ff;
+    color: #302b63;
+    padding: 1px 6px;
+    border-radius: 4px;
+    font-family: 'Courier New', monospace;
+    font-size: 9pt;
+  }
+
+  /* ── Badges / Pills ─────────────────────────────────────────── */
+  .pill {
+    display: inline-block;
+    padding: 2px 10px;
+    border-radius: 12px;
+    font-size: 8.5pt;
+    font-weight: 600;
+    margin: 2px 2px;
+  }
+  .pill.post   { background: #dcfce7; color: #166534; }
+  .pill.get    { background: #dbeafe; color: #1e40af; }
+  .pill.put    { background: #fef3c7; color: #92400e; }
+  .pill.delete { background: #fee2e2; color: #991b1b; }
+  .pill.event  { background: #faf5ff; color: #6b21a8; border: 1px solid #e9d5ff; }
+  .pill.auth   { background: #fff7ed; color: #c2410c; border: 1px solid #fed7aa; }
+  .pill.noauth { background: #f0fdf4; color: #166534; border: 1px solid #bbf7d0; }
+
+  /* ── Info Boxes ─────────────────────────────────────────────── */
+  .info-box {
+    border-radius: 8px;
+    padding: 14px 18px;
+    margin: 16px 0;
+    font-size: 10pt;
+  }
+  .info-box.note    { background: #eff6ff; border-left: 4px solid #3b82f6; }
+  .info-box.warn    { background: #fffbeb; border-left: 4px solid #f59e0b; }
+  .info-box.success { background: #f0fdf4; border-left: 4px solid #22c55e; }
+  .info-box.fix     { background: #fdf4ff; border-left: 4px solid #a855f7; }
+  .info-box strong  { display: block; margin-bottom: 4px; }
+
+  /* ── Lists ──────────────────────────────────────────────────── */
+  ul, ol { margin: 8px 0 12px 24px; }
+  li { margin: 4px 0; }
+
+  /* ── Page Break ─────────────────────────────────────────────── */
+  .page-break { page-break-before: always; }
+
+  /* ── Footer ─────────────────────────────────────────────────── */
+  .footer {
+    margin-top: 60px;
+    padding-top: 16px;
+    border-top: 1px solid #e0e0ef;
+    font-size: 9pt;
+    color: #aaa;
+    text-align: center;
+  }
+
+  @media print {
+    body { font-size: 10pt; }
+    .cover { min-height: auto; padding: 80px 60px; }
+    pre { font-size: 7.5pt; }
+    .arch-diagram { font-size: 8pt; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     COVER PAGE
+════════════════════════════════════════════════════════════════ -->
+<div class="cover">
+  <div class="badge">CPEN 421 · Mobile and Web Architecture · Course Project</div>
+  <h1>National Emergency Response<br>Coordination Platform</h1>
+  <h2>Phase 2 — Backend Implementation Report</h2>
+
+  <div class="meta-grid">
+    <div>
+      <div class="label">Date</div>
+      <div class="value">March 2026</div>
+    </div>
+    <div>
+      <div class="label">Phase</div>
+      <div class="value">Backend (Phase 2)</div>
+    </div>
+    <div>
+      <div class="label">Architecture</div>
+      <div class="value">MERN Microservices</div>
+    </div>
+    <div>
+      <div class="label">Messaging</div>
+      <div class="value">RabbitMQ (AMQP)</div>
+    </div>
+    <div>
+      <div class="label">Database</div>
+      <div class="value">MongoDB Atlas</div>
+    </div>
+    <div>
+      <div class="label">Real-time</div>
+      <div class="value">Socket.IO</div>
+    </div>
+  </div>
+
+  <div class="services">
+    <div class="service-chip">Auth Service · :3001</div>
+    <div class="service-chip">Incident Service · :3002</div>
+    <div class="service-chip">Dispatch Service · :3003</div>
+    <div class="service-chip">Analytics Service · :3004</div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     MAIN CONTENT
+════════════════════════════════════════════════════════════════ -->
+<div class="page">
+
+<!-- TABLE OF CONTENTS -->
+<div class="toc">
+  <h2>Table of Contents</h2>
+  <ol>
+    <li>Executive Summary</li>
+    <li>System Architecture
+      <ol>
+        <li class="sub">Microservices Overview</li>
+        <li class="sub">Communication Patterns</li>
+        <li class="sub">RabbitMQ Event Flow</li>
+      </ol>
+    </li>
+    <li>Infrastructure &amp; Configuration</li>
+    <li>Shared Common Modules
+      <ol>
+        <li class="sub">RabbitMQ Messaging Layer</li>
+        <li class="sub">Event Constants</li>
+        <li class="sub">Utility Helpers</li>
+        <li class="sub">Authentication Middleware</li>
+      </ol>
+    </li>
+    <li>Auth Service (Port 3001)</li>
+    <li>Incident Service (Port 3002)</li>
+    <li>Dispatch Service (Port 3003)</li>
+    <li>Analytics Service (Port 3004)</li>
+    <li>Data Models</li>
+    <li>Bugs Fixed</li>
+    <li>API Reference Summary</li>
+    <li>Startup &amp; Developer Guide</li>
+  </ol>
+</div>
+
+<!-- ─────────────────────────────────────────────────────────────
+     1. EXECUTIVE SUMMARY
+──────────────────────────────────────────────────────────────── -->
+<h1 class="section-title">1. Executive Summary</h1>
+
+<p>
+  Phase 2 delivers a fully functional backend for the <strong>National Emergency Response Coordination Platform</strong>,
+  a distributed system designed to manage emergency incidents, dispatch responders, and provide real-time
+  operational analytics for Ghana's emergency services.
+</p>
+
+<div class="card-grid">
+  <div class="card blue">
+    <div class="card-label">Microservices</div>
+    <div class="card-value">4</div>
+    <div class="card-desc">Auth · Incident · Dispatch · Analytics</div>
+  </div>
+  <div class="card green">
+    <div class="card-label">REST API Endpoints</div>
+    <div class="card-value">30+</div>
+    <div class="card-desc">Across all 4 services</div>
+  </div>
+  <div class="card yellow">
+    <div class="card-label">RabbitMQ Events</div>
+    <div class="card-value">8</div>
+    <div class="card-desc">Async inter-service events</div>
+  </div>
+  <div class="card purple">
+    <div class="card-label">Bugs Fixed</div>
+    <div class="card-value">6</div>
+    <div class="card-desc">Route, model, and config fixes</div>
+  </div>
+</div>
+
+<p>Key deliverables in Phase 2:</p>
+<ul>
+  <li>Event-driven architecture using RabbitMQ topic exchange (<span class="inline-code">emergency_platform</span>)</li>
+  <li>Real-time vehicle location tracking via Socket.IO</li>
+  <li>Self-sufficient analytics service powered by consumed events (no upstream HTTP calls)</li>
+  <li>Station registry for police stations, fire stations, and hospitals</li>
+  <li>Swagger UI documentation on every service</li>
+  <li>Single shared <span class="inline-code">.env</span> configuration file</li>
+  <li>MongoDB Atlas with per-service database isolation</li>
+</ul>
+
+<!-- ─────────────────────────────────────────────────────────────
+     2. SYSTEM ARCHITECTURE
+──────────────────────────────────────────────────────────────── -->
+<div class="page-break"></div>
+<h1 class="section-title">2. System Architecture</h1>
+
+<h2>2.1 Microservices Overview</h2>
+
+<table>
+  <thead>
+    <tr><th>Service</th><th>Port</th><th>Database</th><th>Responsibility</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>Auth Service</strong></td>
+      <td>3001</td>
+      <td>auth_service</td>
+      <td>User registration, login, JWT issuance &amp; refresh, role management</td>
+    </tr>
+    <tr>
+      <td><strong>Incident Service</strong></td>
+      <td>3002</td>
+      <td>incident_service</td>
+      <td>Emergency incident lifecycle, automatic responder matching using Haversine distance</td>
+    </tr>
+    <tr>
+      <td><strong>Dispatch Service</strong></td>
+      <td>3003</td>
+      <td>dispatch_service</td>
+      <td>Vehicle fleet management, GPS tracking, station registry, Socket.IO real-time broadcasts</td>
+    </tr>
+    <tr>
+      <td><strong>Analytics Service</strong></td>
+      <td>3004</td>
+      <td>analytics_service</td>
+      <td>Operational dashboards, KPI metrics, incident mapping to Ghana regions — all from local DB populated by RabbitMQ events</td>
+    </tr>
+  </tbody>
+</table>
+
+<h2>2.2 Communication Patterns</h2>
+
+<p>The system uses <strong>two communication patterns</strong>:</p>
+<ul>
+  <li>
+    <strong>Synchronous HTTP (REST)</strong> — Used by the Incident Service to query the Dispatch Service
+    for available vehicles when auto-dispatching. Fast, request/response.
+  </li>
+  <li>
+    <strong>Asynchronous RabbitMQ events</strong> — All cross-service state propagation (incident creation,
+    dispatch confirmation, vehicle status, analytics). Decoupled, durable, and resilient to service downtime.
+  </li>
+</ul>
+
+<h2>2.3 RabbitMQ Event Flow</h2>
+
+<div class="arch-diagram">Exchange: emergency_platform  (type: topic, durable)
+
+┌─────────────────┐   incident.created  ──────────────────────────────┐
+│                 │   incident.dispatched ──────────────────────────┐  │
+│ Incident        │   incident.status.updated ──────────────────┐   │  │
+│ Service         │   incident.resolved ────────────────────┐   │   │  │
+│ :3002           │                                          │   │   │  │
+└─────────────────┘                                          │   │   │  │
+                                                             ▼   ▼   ▼  ▼
+┌─────────────────┐   vehicle.location.updated ──────► [ analytics.incidents ]
+│                 │   vehicle.status.changed ───┐     [ analytics.vehicles  ] ─► Analytics
+│ Dispatch        │                             │     [ analytics.users     ]    Service
+│ Service         │◄──── incident.dispatched ───┘                                :3004
+│ :3003           │       [ dispatch.incidents ]
+└─────────────────┘
+        ▲
+        │  vehicle.status.changed
+        │  [ incident.vehicles ]
+┌─────────────────┐
+│ Incident        │
+│ Service :3002   │  (vehicle availability cache)
+└─────────────────┘
+
+┌─────────────────┐   user.registered
+│ Auth Service    │──────────────────► [ analytics.users ] ──► Analytics
+│ :3001           │
+└─────────────────┘
+</div>
+
+<h3>Queue Binding Table</h3>
+<table>
+  <thead>
+    <tr><th>Queue</th><th>Binding Key(s)</th><th>Consumer</th><th>Purpose</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><code>analytics.incidents</code></td><td><code>incident.*</code></td><td>Analytics</td><td>All incident lifecycle events</td></tr>
+    <tr><td><code>analytics.vehicles</code></td><td><code>vehicle.*</code></td><td>Analytics</td><td>Vehicle location &amp; status events</td></tr>
+    <tr><td><code>analytics.users</code></td><td><code>user.*</code></td><td>Analytics</td><td>User registration events</td></tr>
+    <tr><td><code>dispatch.incidents</code></td><td><code>incident.dispatched</code></td><td>Dispatch</td><td>Auto-mark vehicle as dispatched</td></tr>
+    <tr><td><code>incident.vehicles</code></td><td><code>vehicle.status.changed</code></td><td>Incident</td><td>Vehicle availability cache</td></tr>
+  </tbody>
+</table>
+
+<!-- ─────────────────────────────────────────────────────────────
+     3. INFRASTRUCTURE & CONFIGURATION
+──────────────────────────────────────────────────────────────── -->
+<div class="page-break"></div>
+<h1 class="section-title">3. Infrastructure &amp; Configuration</h1>
+
+<h2>3.1 Environment Configuration</h2>
+<p>
+  A single root-level <span class="inline-code">.env</span> file is shared across all services.
+  Each service loads it with <span class="inline-code">path.join(__dirname, '../../../.env')</span>.
+</p>
+
+<pre><code># MongoDB (standard URI — bypasses DNS SRV requirement of Node.js v25)
+MONGODB_URI=mongodb://user:pass@shard-00-00.clauhrg.mongodb.net:27017,\
+            shard-00-01.clauhrg.mongodb.net:27017,\
+            shard-00-02.clauhrg.mongodb.net:27017/\
+            ?authSource=admin&replicaSet=atlas-xxx-shard-0&tls=true
+
+# Auth Service
+AUTH_SERVICE_PORT=3001
+JWT_SECRET=&lt;strong-secret&gt;
+JWT_EXPIRE=24h
+JWT_REFRESH_SECRET=&lt;strong-refresh-secret&gt;
+JWT_REFRESH_EXPIRE=7d
+
+# Service Ports
+INCIDENT_SERVICE_PORT=3002
+DISPATCH_SERVICE_PORT=3003
+ANALYTICS_SERVICE_PORT=3004
+
+# RabbitMQ (CloudAMQP)
+RABBITMQ_URL=amqps://user:pass@gull.rmq.cloudamqp.com/vhost
+RABBITMQ_EXCHANGE=emergency_platform
+
+NODE_ENV=development</code></pre>
+
+<div class="info-box note">
+  <strong>Note — MongoDB URI Format</strong>
+  Node.js v25 on Windows uses c-ares DNS which cannot resolve <code>mongodb+srv://</code> SRV records.
+  The URI was converted to a standard <code>mongodb://</code> URI with all three Atlas shard hostnames
+  explicitly listed, plus <code>replicaSet</code> and <code>tls=true</code> query parameters discovered
+  from DNS TXT records.
+</div>
+
+<h2>3.2 Database Strategy</h2>
+<p>Each microservice connects to <strong>its own MongoDB database</strong> on the shared Atlas cluster:</p>
+
+<table>
+  <thead><tr><th>Service</th><th>Database Name</th><th>Key Collections</th></tr></thead>
+  <tbody>
+    <tr><td>Auth</td><td>auth_service</td><td>users</td></tr>
+    <tr><td>Incident</td><td>incident_service</td><td>incidents</td></tr>
+    <tr><td>Dispatch</td><td>dispatch_service</td><td>vehicles, locationhistories, stations</td></tr>
+    <tr><td>Analytics</td><td>analytics_service</td><td>analyticsevents, incidentsummaries, vehiclesummaries</td></tr>
+  </tbody>
+</table>
+
+<p>The <span class="inline-code">dbName</span> option in <span class="inline-code">mongoose.connect()</span>
+is used to assign each service to its database without altering the shared URI:</p>
+
+<pre><code>await mongoose.connect(process.env.MONGODB_URI, { dbName: 'auth_service' });</code></pre>
+
+<h2>3.3 Project Structure</h2>
+<pre><code>course-project/
+├── .env                        ← Single shared environment file
+├── package.json                ← Root scripts (dev, start, install:all)
+├── common/
+│   ├── messaging/
+│   │   ├── rabbitmq.js         ← Connection manager + pub/sub
+│   │   └── events.js           ← Event constants &amp; queue definitions
+│   ├── middleware/
+│   │   ├── auth.js             ← JWT verification middleware
+│   │   └── errorHandler.js     ← Express error handler
+│   └── utils/
+│       └── helpers.js          ← Haversine formula, responder matching
+└── services/
+    ├── auth-service/           (port 3001)
+    │   ├── package.json
+    │   └── src/ → server.js, config/, models/, routes/
+    ├── incident-service/       (port 3002)
+    │   ├── package.json
+    │   └── src/ → server.js, config/, models/, routes/
+    ├── dispatch-service/       (port 3003)
+    │   ├── package.json
+    │   └── src/ → server.js, config/, models/, routes/
+    └── analytics-service/      (port 3004)
+        ├── package.json
+        └── src/ → server.js, config/, models/, routes/, messaging/</code></pre>
+
+<!-- ─────────────────────────────────────────────────────────────
+     4. COMMON MODULES
+──────────────────────────────────────────────────────────────── -->
+<div class="page-break"></div>
+<h1 class="section-title">4. Shared Common Modules</h1>
+
+<h2>4.1 RabbitMQ Messaging Layer</h2>
+<p>File: <span class="inline-code">common/messaging/rabbitmq.js</span></p>
+<p>
+  A singleton connection manager for RabbitMQ with automatic retry and reconnection logic.
+  All four services import this module — it manages a single channel and re-uses it across publish/subscribe calls.
+</p>
+
+<h4>Key behaviours:</h4>
+<ul>
+  <li><strong>Retry on startup</strong> — up to 10 attempts with 3-second delays before giving up</li>
+  <li><strong>Auto-reconnect</strong> — listens to <span class="inline-code">connection.on('close')</span> and schedules reconnect</li>
+  <li><strong>Durable topic exchange</strong> — declared on every connection so it survives broker restarts</li>
+  <li><strong>Prefetch(10)</strong> — limits concurrent unacknowledged messages per consumer</li>
+  <li><strong>ACK/NACK</strong> — messages are acknowledged on success and nacked (no requeue) on handler error</li>
+</ul>
+
+<pre><code>// Publish an event
+const publish = (routingKey, payload) =&gt; {
+  // Serialises payload as JSON Buffer
+  // Sets persistent: true (survives broker restart)
+  // Returns false if channel is not ready
+};
+
+// Subscribe a queue to one or more binding keys
+const subscribe = async (queueName, bindingKeys, handler) =&gt; {
+  // Asserts durable queue
+  // Binds to each routing key pattern (supports wildcards: *, #)
+  // handler signature: async (routingKey, payload) =&gt; void
+};</code></pre>
+
+<h2>4.2 Event Constants</h2>
+<p>File: <span class="inline-code">common/messaging/events.js</span></p>
+
+<table>
+  <thead><tr><th>Constant</th><th>Routing Key</th><th>Published By</th></tr></thead>
+  <tbody>
+    <tr><td>INCIDENT_CREATED</td><td><code>incident.created</code></td><td>Incident Service</td></tr>
+    <tr><td>INCIDENT_DISPATCHED</td><td><code>incident.dispatched</code></td><td>Incident Service</td></tr>
+    <tr><td>INCIDENT_STATUS_UPDATED</td><td><code>incident.status.updated</code></td><td>Incident Service</td></tr>
+    <tr><td>INCIDENT_RESOLVED</td><td><code>incident.resolved</code></td><td>Incident Service</td></tr>
+    <tr><td>VEHICLE_REGISTERED</td><td><code>vehicle.registered</code></td><td>Dispatch Service</td></tr>
+    <tr><td>VEHICLE_LOCATION_UPDATED</td><td><code>vehicle.location.updated</code></td><td>Dispatch Service</td></tr>
+    <tr><td>VEHICLE_STATUS_CHANGED</td><td><code>vehicle.status.changed</code></td><td>Dispatch Service</td></tr>
+    <tr><td>USER_REGISTERED</td><td><code>user.registered</code></td><td>Auth Service</td></tr>
+  </tbody>
+</table>
+
+<h2>4.3 Utility Helpers</h2>
+<p>File: <span class="inline-code">common/utils/helpers.js</span></p>
+
+<h4>Haversine Distance Formula</h4>
+<p>
+  Used by the Incident Service to rank vehicles by proximity before dispatching the nearest available one.
+  Returns distance in kilometres between two GPS coordinates.
+</p>
+<pre><code>const calculateDistance = (lat1, lon1, lat2, lon2) =&gt; {
+  const R = 6371; // Earth's radius in km
+  const dLat = toRad(lat2 - lat1);
+  const dLon = toRad(lon2 - lon1);
+  const a = Math.sin(dLat/2)**2 +
+            Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon/2)**2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+};</code></pre>
+
+<h4>Responder Type Mapping (Bug Fix Applied)</h4>
+<pre><code>const getResponderType = (incidentType) =&gt; {
+  const typeMap = {
+    'robbery': 'police_car',   // was: 'police' (wrong enum value)
+    'assault': 'police_car',   // was: 'police'
+    'fire':    'fire_truck',   // was: 'fire'
+    'medical': 'ambulance',
+    'accident':'ambulance'
+  };
+  return typeMap[incidentType.toLowerCase()] || null;
+};</code></pre>
+
+<h2>4.4 Authentication Middleware</h2>
+<p>File: <span class="inline-code">common/middleware/auth.js</span></p>
+<p>Verifies <span class="inline-code">Authorization: Bearer &lt;token&gt;</span> on every protected route.
+Sets <span class="inline-code">req.user</span> with the decoded JWT payload. Returns 401 on missing/invalid token.</p>
+
+<!-- ─────────────────────────────────────────────────────────────
+     5. AUTH SERVICE
+──────────────────────────────────────────────────────────────── -->
+<div class="page-break"></div>
+<h1 class="section-title">5. Auth Service (Port 3001)</h1>
+
+<h2>5.1 Responsibilities</h2>
+<ul>
+  <li>User registration with bcrypt password hashing (salt rounds: 10)</li>
+  <li>JWT access token (24 h) + refresh token (7 d) issuance</li>
+  <li>Token refresh endpoint to renew expired access tokens without re-login</li>
+  <li>Role-based access control: <span class="inline-code">admin</span>, <span class="inline-code">hospital_admin</span>,
+      <span class="inline-code">police_admin</span>, <span class="inline-code">fire_admin</span></li>
+  <li>Publishes <span class="inline-code">user.registered</span> event to RabbitMQ after registration</li>
+</ul>
+
+<h2>5.2 API Endpoints</h2>
+<table>
+  <thead><tr><th>Method</th><th>Path</th><th>Auth</th><th>Description</th></tr></thead>
+  <tbody>
+    <tr>
+      <td><span class="pill post">POST</span></td>
+      <td><code>/auth/register</code></td>
+      <td><span class="pill noauth">Public</span></td>
+      <td>Register a new user. Required: name, email, password, role. Returns 201 + user object.</td>
+    </tr>
+    <tr>
+      <td><span class="pill post">POST</span></td>
+      <td><code>/auth/login</code></td>
+      <td><span class="pill noauth">Public</span></td>
+      <td>Authenticate. Returns accessToken, refreshToken, and user object.</td>
+    </tr>
+    <tr>
+      <td><span class="pill post">POST</span></td>
+      <td><code>/auth/refresh-token</code></td>
+      <td><span class="pill noauth">Public</span></td>
+      <td>Exchange valid refreshToken for a new accessToken.</td>
+    </tr>
+    <tr>
+      <td><span class="pill get">GET</span></td>
+      <td><code>/auth/profile</code></td>
+      <td><span class="pill auth">JWT</span></td>
+      <td>Return authenticated user's profile.</td>
+    </tr>
+    <tr>
+      <td><span class="pill get">GET</span></td>
+      <td><code>/auth/users</code></td>
+      <td><span class="pill auth">Admin JWT</span></td>
+      <td>List all registered users (passwords excluded).</td>
+    </tr>
+  </tbody>
+</table>
+
+<h2>5.3 User Model</h2>
+<pre><code>{
+  name:         String (2–100 chars, required),
+  email:        String (unique, lowercase, required),
+  passwordHash: String (auto-hashed by pre-save hook),
+  role:         Enum ['admin','hospital_admin','police_admin','fire_admin'],
+  isActive:     Boolean (default: true),
+  lastLogin:    Date,
+  timestamps:   createdAt, updatedAt
+}</code></pre>
+
+<h2>5.4 RabbitMQ Event Published</h2>
+<pre><code>// Routing key: user.registered
+{
+  userId:    "64abc...",
+  name:      "John Doe",
+  email:     "john@example.com",
+  role:      "admin",
+  createdAt: "2026-03-19T10:00:00Z"
+}</code></pre>
+
+<!-- ─────────────────────────────────────────────────────────────
+     6. INCIDENT SERVICE
+──────────────────────────────────────────────────────────────── -->
+<div class="page-break"></div>
+<h1 class="section-title">6. Incident Service (Port 3002)</h1>
+
+<h2>6.1 Responsibilities</h2>
+<ul>
+  <li>Full lifecycle management for emergency incidents (Created → Dispatched → In Progress → Resolved)</li>
+  <li>Automatic nearest-responder matching using Haversine distance against the Dispatch Service vehicle list</li>
+  <li>Publishing lifecycle events to RabbitMQ for downstream services to react</li>
+  <li>Subscribing to <span class="inline-code">vehicle.status.changed</span> to maintain awareness of vehicle availability</li>
+</ul>
+
+<h2>6.2 API Endpoints</h2>
+<table>
+  <thead><tr><th>Method</th><th>Path</th><th>Auth</th><th>Description</th></tr></thead>
+  <tbody>
+    <tr>
+      <td><span class="pill post">POST</span></td>
+      <td><code>/incidents</code></td>
+      <td><span class="pill auth">JWT</span></td>
+      <td>Create a new incident and trigger automatic responder dispatch.</td>
+    </tr>
+    <tr>
+      <td><span class="pill get">GET</span></td>
+      <td><code>/incidents/open</code></td>
+      <td><span class="pill auth">JWT</span></td>
+      <td>List all unresolved incidents sorted by creation date.</td>
+    </tr>
+    <tr>
+      <td><span class="pill get">GET</span></td>
+      <td><code>/incidents/all</code></td>
+      <td><span class="pill auth">JWT</span></td>
+      <td>Paginated list of all incidents. Query: page, limit.</td>
+    </tr>
+    <tr>
+      <td><span class="pill get">GET</span></td>
+      <td><code>/incidents/:id</code></td>
+      <td><span class="pill auth">JWT</span></td>
+      <td>Get single incident by ID.</td>
+    </tr>
+    <tr>
+      <td><span class="pill put">PUT</span></td>
+      <td><code>/incidents/:id/status</code></td>
+      <td><span class="pill auth">JWT</span></td>
+      <td>Update incident status. Auto-calculates responseTime (minutes) on resolution.</td>
+    </tr>
+    <tr>
+      <td><span class="pill put">PUT</span></td>
+      <td><code>/incidents/:id/assign</code></td>
+      <td><span class="pill auth">JWT</span></td>
+      <td>Manually trigger responder matching for an existing incident.</td>
+    </tr>
+  </tbody>
+</table>
+
+<h2>6.3 Auto-Dispatch Logic</h2>
+<p>When an incident is created, <span class="inline-code">matchAndDispatchResponder()</span> runs asynchronously:</p>
+<ol>
+  <li>Maps incident type → vehicle type (e.g. <em>fire</em> → <em>fire_truck</em>)</li>
+  <li>Queries Dispatch Service: <span class="inline-code">GET /vehicles?type=fire_truck&amp;status=available</span></li>
+  <li>Computes Haversine distance from incident to each vehicle</li>
+  <li>Selects the closest vehicle and updates the incident's <span class="inline-code">assignedUnit</span></li>
+  <li>Publishes <span class="pill event">INCIDENT_DISPATCHED</span> — Dispatch Service marks vehicle busy, Analytics records event</li>
+</ol>
+
+<h2>6.4 RabbitMQ Events Published</h2>
+<table>
+  <thead><tr><th>Event</th><th>Trigger</th><th>Key Payload Fields</th></tr></thead>
+  <tbody>
+    <tr><td><code>incident.created</code></td><td>POST /incidents</td><td>incidentId, type, location, adminId, status</td></tr>
+    <tr><td><code>incident.dispatched</code></td><td>Auto-dispatch success</td><td>incidentId, vehicleId, vehicleType, distanceKm</td></tr>
+    <tr><td><code>incident.status.updated</code></td><td>PUT /status</td><td>incidentId, status, responseTime, resolvedAt</td></tr>
+    <tr><td><code>incident.resolved</code></td><td>Status → Resolved</td><td>incidentId, responseTime, resolvedAt</td></tr>
+  </tbody>
+</table>
+
+<h2>6.5 Incident Model</h2>
+<pre><code>{
+  citizenName:  String (required),
+  incidentType: Enum ['robbery','assault','fire','medical','accident'],
+  latitude:     Number (required),
+  longitude:    Number (required),
+  notes:        String,
+  adminId:      String (required),
+  assignedUnit: { vehicleId, vehicleType, serviceType },
+  status:       Enum ['Created','Dispatched','In Progress','Resolved'],
+  resolvedAt:   Date,
+  responseTime: Number (minutes),
+  timestamps:   createdAt, updatedAt
+}</code></pre>
+
+<!-- ─────────────────────────────────────────────────────────────
+     7. DISPATCH SERVICE
+──────────────────────────────────────────────────────────────── -->
+<div class="page-break"></div>
+<h1 class="section-title">7. Dispatch Service (Port 3003)</h1>
+
+<h2>7.1 Responsibilities</h2>
+<ul>
+  <li>Emergency vehicle fleet registry and real-time GPS tracking</li>
+  <li>Socket.IO server for live vehicle location push to connected frontend clients</li>
+  <li>Station registry (police stations, fire stations, hospitals with bed capacity)</li>
+  <li>Consumes <span class="inline-code">incident.dispatched</span> events and auto-marks vehicles as <em>dispatched</em></li>
+  <li>Publishes vehicle location and status change events to RabbitMQ</li>
+</ul>
+
+<h2>7.2 Real-Time Architecture</h2>
+<p>
+  The Dispatch Service wraps Express inside a Node.js <span class="inline-code">http.createServer()</span>
+  and passes the same server instance to Socket.IO. This allows both REST and WebSocket traffic on port 3003.
+</p>
+<pre><code>const server = http.createServer(app);
+const io = new SocketIOServer(server, { cors: { origin: '*' } });
+setIO(io); // injects io into vehicle routes
+
+// On vehicle location update:
+io.emit('vehicle:location', { vehicleId, latitude, longitude, status, timestamp });
+
+// On incident.dispatched RabbitMQ event:
+io.emit('vehicle:dispatched', { vehicleId, incidentId, vehicleType, distanceKm });</code></pre>
+
+<h2>7.3 Vehicle API Endpoints</h2>
+<table>
+  <thead><tr><th>Method</th><th>Path</th><th>Auth</th><th>Description</th></tr></thead>
+  <tbody>
+    <tr>
+      <td><span class="pill post">POST</span></td>
+      <td><code>/vehicles/register</code></td>
+      <td><span class="pill auth">JWT</span></td>
+      <td>Register a new vehicle. Sets status to <em>available</em> by default.</td>
+    </tr>
+    <tr>
+      <td><span class="pill get">GET</span></td>
+      <td><code>/vehicles</code></td>
+      <td><span class="pill auth">JWT</span></td>
+      <td>List vehicles. Filter by <code>?type=</code> and <code>?status=</code>.</td>
+    </tr>
+    <tr>
+      <td><span class="pill get">GET</span></td>
+      <td><code>/vehicles/:id</code></td>
+      <td><span class="pill auth">JWT</span></td>
+      <td>Get vehicle details.</td>
+    </tr>
+    <tr>
+      <td><span class="pill get">GET</span></td>
+      <td><code>/vehicles/:id/location</code></td>
+      <td><span class="pill auth">JWT</span></td>
+      <td>Get current GPS coordinates.</td>
+    </tr>
+    <tr>
+      <td><span class="pill post">POST</span></td>
+      <td><code>/vehicles/:id/location</code></td>
+      <td><span class="pill noauth">None</span></td>
+      <td>Update GPS (called from driver app). Saves to LocationHistory, broadcasts via Socket.IO, publishes event.</td>
+    </tr>
+    <tr>
+      <td><span class="pill put">PUT</span></td>
+      <td><code>/vehicles/:id/status</code></td>
+      <td><span class="pill noauth">None</span></td>
+      <td>Update vehicle status. Increments <em>totalIncidentsResponded</em> when returning to available.</td>
+    </tr>
+    <tr>
+      <td><span class="pill get">GET</span></td>
+      <td><code>/vehicles/:id/location-history</code></td>
+      <td><span class="pill auth">JWT</span></td>
+      <td>Last N GPS records. Default 50.</td>
+    </tr>
+  </tbody>
+</table>
+
+<h2>7.4 Station API Endpoints</h2>
+<table>
+  <thead><tr><th>Method</th><th>Path</th><th>Auth</th><th>Description</th></tr></thead>
+  <tbody>
+    <tr>
+      <td><span class="pill post">POST</span></td>
+      <td><code>/stations</code></td>
+      <td><span class="pill auth">JWT</span></td>
+      <td>Register a new station (police/fire/hospital).</td>
+    </tr>
+    <tr>
+      <td><span class="pill get">GET</span></td>
+      <td><code>/stations</code></td>
+      <td><span class="pill auth">JWT</span></td>
+      <td>List active stations. Filter by <code>?type=</code> and <code>?region=</code>.</td>
+    </tr>
+    <tr>
+      <td><span class="pill get">GET</span></td>
+      <td><code>/stations/:id</code></td>
+      <td><span class="pill auth">JWT</span></td>
+      <td>Get station details.</td>
+    </tr>
+    <tr>
+      <td><span class="pill put">PUT</span></td>
+      <td><code>/stations/:id</code></td>
+      <td><span class="pill auth">JWT</span></td>
+      <td>Update station information.</td>
+    </tr>
+    <tr>
+      <td><span class="pill put">PUT</span></td>
+      <td><code>/stations/:id/capacity</code></td>
+      <td><span class="pill auth">JWT</span></td>
+      <td>Update hospital bed capacity (totalBeds, availableBeds).</td>
+    </tr>
+  </tbody>
+</table>
+
+<h2>7.5 Vehicle &amp; Station Models</h2>
+<pre><code>// Vehicle
+{
+  vehicleType: Enum ['ambulance','police_car','fire_truck'],
+  serviceId:   String,
+  driverId:    String, driverName: String,
+  latitude:    Number, longitude: Number,
+  status:      Enum ['available','dispatched','on_scene','in_transit','unavailable'],
+  currentIncidentId:       String,
+  lastLocationUpdate:      Date,
+  totalIncidentsResponded: Number
+}
+
+// LocationHistory (separate collection)
+{ vehicleId: ObjectId (ref Vehicle), latitude, longitude, timestamp }
+
+// Station
+{
+  name:          String,
+  stationType:   Enum ['police','fire','hospital'],
+  latitude:      Number, longitude: Number,
+  address:       String, region: String, contactPhone: String,
+  totalBeds:     Number,     // hospitals only
+  availableBeds: Number,     // hospitals only
+  isActive:      Boolean
+}</code></pre>
+
+<!-- ─────────────────────────────────────────────────────────────
+     8. ANALYTICS SERVICE
+──────────────────────────────────────────────────────────────── -->
+<div class="page-break"></div>
+<h1 class="section-title">8. Analytics Service (Port 3004)</h1>
+
+<h2>8.1 Design Philosophy — Event-Sourced Analytics</h2>
+<p>
+  The Analytics Service is entirely <strong>decoupled from other services at query time</strong>.
+  It consumes RabbitMQ events as they happen and maintains its own aggregated view of the world in
+  <span class="inline-code">analytics_service</span> MongoDB. All dashboard and reporting queries
+  hit <em>local</em> collections — no upstream HTTP calls, no auth dependency, no coupling to other
+  services' databases.
+</p>
+
+<div class="info-box success">
+  <strong>Key architectural benefit</strong>
+  If the Incident Service or Dispatch Service goes offline, the Analytics Service continues to serve
+  cached metrics from its last known state. It will catch up automatically when the services come back
+  online and resume publishing events.
+</div>
+
+<h2>8.2 Event Consumer</h2>
+<p>File: <span class="inline-code">services/analytics-service/src/messaging/consumer.js</span></p>
+
+<p>Subscribes to two queues at startup. For every event received:</p>
+<ol>
+  <li>Persists the raw event to <span class="inline-code">AnalyticsEvent</span> collection (full audit log)</li>
+  <li>Upserts a summarised document in <span class="inline-code">IncidentSummary</span> or <span class="inline-code">VehicleSummary</span></li>
+</ol>
+
+<table>
+  <thead><tr><th>Event</th><th>Action</th></tr></thead>
+  <tbody>
+    <tr><td><code>incident.created</code></td><td>Insert IncidentSummary (incidentId, type, location, adminId, status)</td></tr>
+    <tr><td><code>incident.dispatched</code></td><td>Update status → Dispatched, set assignedUnit</td></tr>
+    <tr><td><code>incident.status.updated</code></td><td>Update status, responseTime, resolvedAt</td></tr>
+    <tr><td><code>incident.resolved</code></td><td>Update status → Resolved, record responseTime</td></tr>
+    <tr><td><code>vehicle.location.updated</code></td><td>Upsert VehicleSummary, increment totalLocationUpdates</td></tr>
+    <tr><td><code>vehicle.status.changed</code></td><td>Update vehicleType, status, lastSeen in VehicleSummary</td></tr>
+  </tbody>
+</table>
+
+<h2>8.3 API Endpoints</h2>
+<table>
+  <thead><tr><th>Method</th><th>Path</th><th>Auth</th><th>Description</th></tr></thead>
+  <tbody>
+    <tr>
+      <td><span class="pill get">GET</span></td>
+      <td><code>/analytics/dashboard</code></td>
+      <td><span class="pill auth">JWT</span></td>
+      <td>Comprehensive summary: total/resolved/open incidents, avg response time, type breakdown, vehicle status.</td>
+    </tr>
+    <tr>
+      <td><span class="pill get">GET</span></td>
+      <td><code>/analytics/response-times</code></td>
+      <td><span class="pill auth">JWT</span></td>
+      <td>Average response time overall and per incident type.</td>
+    </tr>
+    <tr>
+      <td><span class="pill get">GET</span></td>
+      <td><code>/analytics/incidents-by-region</code></td>
+      <td><span class="pill auth">JWT</span></td>
+      <td>Incident counts mapped to Ghana's 16 administrative regions using lat/lon bounding boxes.</td>
+    </tr>
+    <tr>
+      <td><span class="pill get">GET</span></td>
+      <td><code>/analytics/incidents-by-type</code></td>
+      <td><span class="pill auth">JWT</span></td>
+      <td>Incident count per type: robbery, assault, fire, medical, accident.</td>
+    </tr>
+    <tr>
+      <td><span class="pill get">GET</span></td>
+      <td><code>/analytics/resource-utilization</code></td>
+      <td><span class="pill auth">JWT</span></td>
+      <td>Vehicle status distribution (available/dispatched/on_scene/…) by type.</td>
+    </tr>
+    <tr>
+      <td><span class="pill get">GET</span></td>
+      <td><code>/analytics/most-deployed</code></td>
+      <td><span class="pill auth">JWT</span></td>
+      <td>Top 10 most active vehicles ranked by totalLocationUpdates.</td>
+    </tr>
+    <tr>
+      <td><span class="pill get">GET</span></td>
+      <td><code>/analytics/events</code></td>
+      <td><span class="pill auth">JWT</span></td>
+      <td>Raw event log. Filter: <code>?type=incident.created&amp;limit=50</code>.</td>
+    </tr>
+  </tbody>
+</table>
+
+<h2>8.4 Analytics Models</h2>
+<pre><code>// AnalyticsEvent — raw event audit log
+{ eventType: String (indexed), payload: Mixed, processedAt: Date }
+// Index: { eventType: 1, createdAt: -1 }
+
+// IncidentSummary — pre-aggregated per incident
+{
+  incidentId:   String (unique),
+  incidentType: String, citizenName: String,
+  latitude:     Number, longitude: Number,
+  adminId:      String, status: String,
+  responseTime: Number, // minutes
+  createdAt:    Date,   resolvedAt: Date,
+  assignedUnit: Mixed
+}
+// Indexes: incidentType, status, createdAt
+
+// VehicleSummary — pre-aggregated per vehicle
+{
+  vehicleId:           String (unique),
+  vehicleType:         String, status: String,
+  lastLatitude:        Number, lastLongitude: Number,
+  lastSeen:            Date,
+  totalLocationUpdates: Number
+}</code></pre>
+
+<h2>8.5 Ghana Region Mapping</h2>
+<p>
+  The <span class="inline-code">/analytics/incidents-by-region</span> endpoint classifies each
+  incident by its GPS coordinates into one of Ghana's 16 administrative regions using predefined
+  latitude/longitude bounding boxes. Incidents outside all bounding boxes are classified as <em>Other</em>.
+</p>
+
+<!-- ─────────────────────────────────────────────────────────────
+     9. DATA MODELS OVERVIEW
+──────────────────────────────────────────────────────────────── -->
+<div class="page-break"></div>
+<h1 class="section-title">9. Data Models Overview</h1>
+
+<table>
+  <thead>
+    <tr><th>Service</th><th>Model</th><th>Key Fields</th><th>Notes</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>Auth</td>
+      <td>User</td>
+      <td>name, email, passwordHash, role, isActive, lastLogin</td>
+      <td>bcrypt pre-save hook; toJSON strips passwordHash</td>
+    </tr>
+    <tr>
+      <td>Incident</td>
+      <td>Incident</td>
+      <td>citizenName, incidentType, lat/lon, adminId, assignedUnit, status, responseTime, resolvedAt</td>
+      <td>responseTime computed from createdAt on resolution</td>
+    </tr>
+    <tr>
+      <td>Dispatch</td>
+      <td>Vehicle</td>
+      <td>vehicleType, serviceId, driverId, lat/lon, status, currentIncidentId, totalIncidentsResponded</td>
+      <td>status enum enforced; counter incremented on return-to-available</td>
+    </tr>
+    <tr>
+      <td>Dispatch</td>
+      <td>LocationHistory</td>
+      <td>vehicleId (ref), latitude, longitude, timestamp</td>
+      <td>Separate collection; appended on every GPS update</td>
+    </tr>
+    <tr>
+      <td>Dispatch</td>
+      <td>Station</td>
+      <td>name, stationType, lat/lon, region, contactPhone, totalBeds, availableBeds, isActive</td>
+      <td>totalBeds/availableBeds relevant for hospitals only</td>
+    </tr>
+    <tr>
+      <td>Analytics</td>
+      <td>AnalyticsEvent</td>
+      <td>eventType, payload, processedAt</td>
+      <td>Full audit log of all RabbitMQ events received</td>
+    </tr>
+    <tr>
+      <td>Analytics</td>
+      <td>IncidentSummary</td>
+      <td>incidentId (unique), type, status, responseTime, lat/lon</td>
+      <td>Upserted on every incident.* event</td>
+    </tr>
+    <tr>
+      <td>Analytics</td>
+      <td>VehicleSummary</td>
+      <td>vehicleId (unique), type, status, lastLat/Lon, totalLocationUpdates</td>
+      <td>Upserted on every vehicle.* event</td>
+    </tr>
+  </tbody>
+</table>
+
+<!-- ─────────────────────────────────────────────────────────────
+     10. BUGS FIXED
+──────────────────────────────────────────────────────────────── -->
+<h1 class="section-title">10. Bugs Fixed</h1>
+
+<div class="info-box fix">
+  <strong>Bug 1 — Route Shadowing (incident-service)</strong>
+  <code>GET /incidents/open</code> was declared <em>after</em> <code>GET /incidents/:id</code>,
+  causing Express to treat "open" as a document ID and return 404 or a CastError.
+  <br><strong>Fix:</strong> Moved all static routes (<code>/open</code>, <code>/all</code>) before the <code>/:id</code> parameterized route.
+</div>
+
+<div class="info-box fix">
+  <strong>Bug 2 — Use-Before-Define in Status Update</strong>
+  In <code>PUT /:id/status</code>, <code>responseTime</code> was calculated using <code>incident.createdAt</code>
+  before the variable <code>incident</code> was assigned (it was set by the result of <code>findByIdAndUpdate</code>).
+  <br><strong>Fix:</strong> Fetch the incident with <code>findById</code> first, compute responseTime, then update.
+</div>
+
+<div class="info-box fix">
+  <strong>Bug 3 — Responder Type Enum Mismatch</strong>
+  <code>getResponderType()</code> returned <code>'police'</code> and <code>'fire'</code> but the
+  Vehicle model enum uses <code>'police_car'</code> and <code>'fire_truck'</code>.
+  Vehicle queries always returned empty arrays for police and fire incidents.
+  <br><strong>Fix:</strong> Updated the type map in <code>helpers.js</code> to use correct enum values.
+</div>
+
+<div class="info-box fix">
+  <strong>Bug 4 — Analytics Service Unauthenticated HTTP Calls</strong>
+  Original analytics routes made HTTP GET calls to Incident/Dispatch service endpoints which
+  require JWT authentication, always receiving 401.
+  <br><strong>Fix:</strong> Analytics service now queries its own local MongoDB collections,
+  populated via RabbitMQ event consumption. Zero upstream HTTP dependency.
+</div>
+
+<div class="info-box fix">
+  <strong>Bug 5 — MongoDB URI Corruption</strong>
+  Original code appended <code>/dbname</code> directly to a URI that already had
+  <code>/?appName=...</code> query params, producing a malformed URI.
+  <br><strong>Fix:</strong> Removed the URI manipulation entirely; uses the <code>dbName</code>
+  option in <code>mongoose.connect()</code> instead.
+</div>
+
+<div class="info-box fix">
+  <strong>Bug 6 — Node.js v25 DNS SRV Resolution Failure</strong>
+  Node.js v25 uses c-ares DNS resolver which cannot perform SRV lookups on Windows,
+  causing <code>querySrv ECONNREFUSED</code> for <code>mongodb+srv://</code> URIs.
+  <br><strong>Fix:</strong> Replaced <code>mongodb+srv://</code> URI with a standard <code>mongodb://</code>
+  URI using all three Atlas shard hostnames and the <code>replicaSet</code> parameter discovered
+  from DNS TXT records.
+</div>
+
+<!-- ─────────────────────────────────────────────────────────────
+     11. API REFERENCE
+──────────────────────────────────────────────────────────────── -->
+<div class="page-break"></div>
+<h1 class="section-title">11. API Reference Summary</h1>
+
+<p>Swagger UI is available at <strong>/api-docs</strong> on each service port:</p>
+<table>
+  <thead><tr><th>Service</th><th>Swagger URL</th></tr></thead>
+  <tbody>
+    <tr><td>Auth</td><td>http://localhost:3001/api-docs</td></tr>
+    <tr><td>Incident</td><td>http://localhost:3002/api-docs</td></tr>
+    <tr><td>Dispatch</td><td>http://localhost:3003/api-docs</td></tr>
+    <tr><td>Analytics</td><td>http://localhost:3004/api-docs</td></tr>
+  </tbody>
+</table>
+
+<h2>Full Endpoint Inventory</h2>
+<table>
+  <thead><tr><th>#</th><th>Method</th><th>Path</th><th>Service</th><th>Auth</th></tr></thead>
+  <tbody>
+    <tr><td>1</td><td><span class="pill post">POST</span></td><td>/auth/register</td><td>Auth</td><td>Public</td></tr>
+    <tr><td>2</td><td><span class="pill post">POST</span></td><td>/auth/login</td><td>Auth</td><td>Public</td></tr>
+    <tr><td>3</td><td><span class="pill post">POST</span></td><td>/auth/refresh-token</td><td>Auth</td><td>Public</td></tr>
+    <tr><td>4</td><td><span class="pill get">GET</span></td><td>/auth/profile</td><td>Auth</td><td>JWT</td></tr>
+    <tr><td>5</td><td><span class="pill get">GET</span></td><td>/auth/users</td><td>Auth</td><td>Admin JWT</td></tr>
+    <tr><td>6</td><td><span class="pill get">GET</span></td><td>/health</td><td>Auth</td><td>Public</td></tr>
+    <tr><td>7</td><td><span class="pill post">POST</span></td><td>/incidents</td><td>Incident</td><td>JWT</td></tr>
+    <tr><td>8</td><td><span class="pill get">GET</span></td><td>/incidents/open</td><td>Incident</td><td>JWT</td></tr>
+    <tr><td>9</td><td><span class="pill get">GET</span></td><td>/incidents/all</td><td>Incident</td><td>JWT</td></tr>
+    <tr><td>10</td><td><span class="pill get">GET</span></td><td>/incidents/:id</td><td>Incident</td><td>JWT</td></tr>
+    <tr><td>11</td><td><span class="pill put">PUT</span></td><td>/incidents/:id/status</td><td>Incident</td><td>JWT</td></tr>
+    <tr><td>12</td><td><span class="pill put">PUT</span></td><td>/incidents/:id/assign</td><td>Incident</td><td>JWT</td></tr>
+    <tr><td>13</td><td><span class="pill get">GET</span></td><td>/health</td><td>Incident</td><td>Public</td></tr>
+    <tr><td>14</td><td><span class="pill post">POST</span></td><td>/vehicles/register</td><td>Dispatch</td><td>JWT</td></tr>
+    <tr><td>15</td><td><span class="pill get">GET</span></td><td>/vehicles</td><td>Dispatch</td><td>JWT</td></tr>
+    <tr><td>16</td><td><span class="pill get">GET</span></td><td>/vehicles/:id</td><td>Dispatch</td><td>JWT</td></tr>
+    <tr><td>17</td><td><span class="pill get">GET</span></td><td>/vehicles/:id/location</td><td>Dispatch</td><td>JWT</td></tr>
+    <tr><td>18</td><td><span class="pill post">POST</span></td><td>/vehicles/:id/location</td><td>Dispatch</td><td>None</td></tr>
+    <tr><td>19</td><td><span class="pill put">PUT</span></td><td>/vehicles/:id/status</td><td>Dispatch</td><td>None</td></tr>
+    <tr><td>20</td><td><span class="pill get">GET</span></td><td>/vehicles/:id/location-history</td><td>Dispatch</td><td>JWT</td></tr>
+    <tr><td>21</td><td><span class="pill post">POST</span></td><td>/stations</td><td>Dispatch</td><td>JWT</td></tr>
+    <tr><td>22</td><td><span class="pill get">GET</span></td><td>/stations</td><td>Dispatch</td><td>JWT</td></tr>
+    <tr><td>23</td><td><span class="pill get">GET</span></td><td>/stations/:id</td><td>Dispatch</td><td>JWT</td></tr>
+    <tr><td>24</td><td><span class="pill put">PUT</span></td><td>/stations/:id</td><td>Dispatch</td><td>JWT</td></tr>
+    <tr><td>25</td><td><span class="pill put">PUT</span></td><td>/stations/:id/capacity</td><td>Dispatch</td><td>JWT</td></tr>
+    <tr><td>26</td><td><span class="pill get">GET</span></td><td>/health</td><td>Dispatch</td><td>Public</td></tr>
+    <tr><td>27</td><td><span class="pill get">GET</span></td><td>/analytics/dashboard</td><td>Analytics</td><td>JWT</td></tr>
+    <tr><td>28</td><td><span class="pill get">GET</span></td><td>/analytics/response-times</td><td>Analytics</td><td>JWT</td></tr>
+    <tr><td>29</td><td><span class="pill get">GET</span></td><td>/analytics/incidents-by-region</td><td>Analytics</td><td>JWT</td></tr>
+    <tr><td>30</td><td><span class="pill get">GET</span></td><td>/analytics/incidents-by-type</td><td>Analytics</td><td>JWT</td></tr>
+    <tr><td>31</td><td><span class="pill get">GET</span></td><td>/analytics/resource-utilization</td><td>Analytics</td><td>JWT</td></tr>
+    <tr><td>32</td><td><span class="pill get">GET</span></td><td>/analytics/most-deployed</td><td>Analytics</td><td>JWT</td></tr>
+    <tr><td>33</td><td><span class="pill get">GET</span></td><td>/analytics/events</td><td>Analytics</td><td>JWT</td></tr>
+    <tr><td>34</td><td><span class="pill get">GET</span></td><td>/health</td><td>Analytics</td><td>Public</td></tr>
+  </tbody>
+</table>
+
+<!-- ─────────────────────────────────────────────────────────────
+     12. STARTUP GUIDE
+──────────────────────────────────────────────────────────────── -->
+<div class="page-break"></div>
+<h1 class="section-title">12. Startup &amp; Developer Guide</h1>
+
+<h2>12.1 Prerequisites</h2>
+<ul>
+  <li>Node.js ≥ 18 (v25 on Windows requires the mongodb+srv fix described above)</li>
+  <li>MongoDB Atlas account with IP whitelist configured (or local <span class="inline-code">mongod</span>)</li>
+  <li>CloudAMQP account (or local RabbitMQ: <span class="inline-code">docker run -d -p 5672:5672 rabbitmq:management</span>)</li>
+</ul>
+
+<h2>12.2 First-Time Setup</h2>
+<pre><code># 1. Clone the repository and enter project root
+cd course-project
+
+# 2. Install all service dependencies
+npm run install:all
+
+# 3. Configure environment (already created — verify .env exists at root)
+#    Ensure MONGODB_URI and RABBITMQ_URL are set correctly
+
+# 4. Start all 4 services in development mode (with hot-reload via nodemon)
+npm run dev</code></pre>
+
+<h2>12.3 NPM Scripts Reference</h2>
+<table>
+  <thead><tr><th>Script</th><th>Description</th></tr></thead>
+  <tbody>
+    <tr><td><code>npm run dev</code></td><td>Start all 4 services concurrently with colour-coded output (AUTH/INCIDENT/DISPATCH/ANALYTICS)</td></tr>
+    <tr><td><code>npm start</code></td><td>Production start of all 4 services</td></tr>
+    <tr><td><code>npm run install:all</code></td><td>Install node_modules in each service directory</td></tr>
+    <tr><td><code>npm run auth:dev</code></td><td>Start only Auth Service with nodemon</td></tr>
+    <tr><td><code>npm run incident:dev</code></td><td>Start only Incident Service with nodemon</td></tr>
+    <tr><td><code>npm run dispatch:dev</code></td><td>Start only Dispatch Service with nodemon</td></tr>
+    <tr><td><code>npm run analytics:dev</code></td><td>Start only Analytics Service with nodemon</td></tr>
+  </tbody>
+</table>
+
+<h2>12.4 Expected Startup Log</h2>
+<pre><code>[AUTH]      Auth Service running on port 3001
+[AUTH]      Swagger docs: http://localhost:3001/api-docs
+[AUTH]      [RabbitMQ] Connected to emergency_platform exchange
+
+[INCIDENT]  Incident Service running on port 3002
+[INCIDENT]  Swagger docs: http://localhost:3002/api-docs
+[INCIDENT]  [RabbitMQ] Connected to emergency_platform exchange
+
+[DISPATCH]  Dispatch Service running on port 3003
+[DISPATCH]  Swagger docs: http://localhost:3003/api-docs
+[DISPATCH]  Socket.IO ready for real-time connections
+
+[ANALYTICS] Analytics Service running on port 3004
+[ANALYTICS] Swagger docs: http://localhost:3004/api-docs
+[ANALYTICS] [Analytics] RabbitMQ consumers started</code></pre>
+
+<h2>12.5 Quick Test Flow</h2>
+<ol>
+  <li>Register a user: <span class="inline-code">POST /auth/register</span></li>
+  <li>Login: <span class="inline-code">POST /auth/login</span> → copy <span class="inline-code">accessToken</span></li>
+  <li>Register a vehicle: <span class="inline-code">POST /vehicles/register</span> (use token)</li>
+  <li>Create an incident: <span class="inline-code">POST /incidents</span> (use token) — auto-dispatch fires</li>
+  <li>View analytics: <span class="inline-code">GET /analytics/dashboard</span> — populated from events</li>
+  <li>Connect a WebSocket client to <span class="inline-code">ws://localhost:3003</span> and watch for <span class="inline-code">vehicle:location</span> and <span class="inline-code">vehicle:dispatched</span> events</li>
+</ol>
+
+<div class="info-box note">
+  <strong>Swagger UI</strong>
+  Each service exposes interactive API documentation at <code>/api-docs</code>. You can authenticate
+  with a Bearer token directly in the Swagger UI by clicking the <strong>Authorize</strong> button and
+  pasting your JWT.
+</div>
+
+<div class="footer">
+  National Emergency Response Coordination Platform &nbsp;·&nbsp; Phase 2 Backend Report &nbsp;·&nbsp;
+  CPEN 421 — Mobile and Web Architecture &nbsp;·&nbsp; March 2026
+</div>
+
+</div><!-- end .page -->
+</body>
+</html>
