@@ -1,0 +1,137 @@
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Emergency Response Platform — local development stack
+# Usage: docker compose up --build
+#
+# Prerequisites:
+#   1. Copy .env.example to .env and fill in MONGODB_URI, JWT secrets.
+#   2. RABBITMQ_URL defaults to the local broker defined below.
+#      Override in .env to use CloudAMQP instead.
+# ─────────────────────────────────────────────────────────────────────────────
+
+services:
+
+  # ── Message broker (local dev only; production uses CloudAMQP) ─────────────
+  rabbitmq:
+    image: rabbitmq:3.13-management-alpine
+    container_name: erp-rabbitmq
+    ports:
+      - "5672:5672"    # AMQP
+      - "15672:15672"  # Management UI → http://localhost:15672 (guest/guest)
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+
+  # ── Auth Service ────────────────────────────────────────────────────────────
+  auth-service:
+    build:
+      context: .                                      # project root (needs common/)
+      dockerfile: services/auth-service/Dockerfile
+    container_name: erp-auth
+    ports:
+      - "3001:3001"
+    environment:
+      NODE_ENV: development
+      PORT: 3001
+      MONGODB_URI: ${MONGODB_URI}
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_EXPIRE: ${JWT_EXPIRE:-24h}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET}
+      JWT_REFRESH_EXPIRE: ${JWT_REFRESH_EXPIRE:-7d}
+      RABBITMQ_URL: ${RABBITMQ_URL:-amqp://guest:guest@rabbitmq:5672}
+      RABBITMQ_EXCHANGE: ${RABBITMQ_EXCHANGE:-emergency_platform}
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # ── Incident Service ────────────────────────────────────────────────────────
+  incident-service:
+    build:
+      context: .
+      dockerfile: services/incident-service/Dockerfile
+    container_name: erp-incident
+    ports:
+      - "3002:3002"
+    environment:
+      NODE_ENV: development
+      PORT: 3002
+      MONGODB_URI: ${MONGODB_URI}
+      JWT_SECRET: ${JWT_SECRET}
+      DISPATCH_SERVICE_URL: http://dispatch-service:3003
+      RABBITMQ_URL: ${RABBITMQ_URL:-amqp://guest:guest@rabbitmq:5672}
+      RABBITMQ_EXCHANGE: ${RABBITMQ_EXCHANGE:-emergency_platform}
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # ── Dispatch Service ────────────────────────────────────────────────────────
+  dispatch-service:
+    build:
+      context: .
+      dockerfile: services/dispatch-service/Dockerfile
+    container_name: erp-dispatch
+    ports:
+      - "3003:3003"   # REST + Socket.IO on same port
+    environment:
+      NODE_ENV: development
+      PORT: 3003
+      MONGODB_URI: ${MONGODB_URI}
+      JWT_SECRET: ${JWT_SECRET}
+      RABBITMQ_URL: ${RABBITMQ_URL:-amqp://guest:guest@rabbitmq:5672}
+      RABBITMQ_EXCHANGE: ${RABBITMQ_EXCHANGE:-emergency_platform}
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # ── Analytics Service ───────────────────────────────────────────────────────
+  analytics-service:
+    build:
+      context: .
+      dockerfile: services/analytics-service/Dockerfile
+    container_name: erp-analytics
+    ports:
+      - "3004:3004"
+    environment:
+      NODE_ENV: development
+      PORT: 3004
+      MONGODB_URI: ${MONGODB_URI}
+      JWT_SECRET: ${JWT_SECRET}
+      RABBITMQ_URL: ${RABBITMQ_URL:-amqp://guest:guest@rabbitmq:5672}
+      RABBITMQ_EXCHANGE: ${RABBITMQ_EXCHANGE:-emergency_platform}
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # ── React Client ────────────────────────────────────────────────────────────
+  client:
+    build:
+      context: ./client
+      dockerfile: Dockerfile
+      args:
+        VITE_AUTH_URL: http://localhost:3001
+        VITE_INCIDENT_URL: http://localhost:3002
+        VITE_DISPATCH_URL: http://localhost:3003
+        VITE_ANALYTICS_URL: http://localhost:3004
+    container_name: erp-client
+    ports:
+      - "3000:80"
+    depends_on:
+      - auth-service
+      - incident-service
+      - dispatch-service
+      - analytics-service
+    restart: unless-stopped
+
+volumes:
+  rabbitmq_data:

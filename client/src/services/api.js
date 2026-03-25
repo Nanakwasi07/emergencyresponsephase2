@@ -1,10 +1,10 @@
 import axios from 'axios';
 
 const URLS = {
-  auth: 'http://localhost:3001',
-  incident: 'http://localhost:3002',
-  dispatch: 'http://localhost:3003',
-  analytics: 'http://localhost:3004',
+  auth:      import.meta.env.VITE_AUTH_URL      || 'http://localhost:3001',
+  incident:  import.meta.env.VITE_INCIDENT_URL  || 'http://localhost:3002',
+  dispatch:  import.meta.env.VITE_DISPATCH_URL  || 'http://localhost:3003',
+  analytics: import.meta.env.VITE_ANALYTICS_URL || 'http://localhost:3004',
 };
 
 const createClient = (baseURL) => {
@@ -45,7 +45,7 @@ const createClient = (baseURL) => {
   return client;
 };
 
-export const authAPI = createClient(URLS.auth);
+export const authAPI     = createClient(URLS.auth);
 export const incidentAPI = createClient(URLS.incident);
 export const dispatchAPI = createClient(URLS.dispatch);
 export const analyticsAPI = createClient(URLS.analytics);

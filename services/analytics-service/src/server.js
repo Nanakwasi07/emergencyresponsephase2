@@ -10,7 +10,7 @@ const { connect: connectRabbitMQ } = require('../../../common/messaging/rabbitmq
 const { startConsumers } = require('./messaging/consumer');
 
 const app = express();
-const PORT = process.env.ANALYTICS_SERVICE_PORT || 3004;
+const PORT = process.env.PORT || process.env.ANALYTICS_SERVICE_PORT || 3004;
 
 // Middleware
 app.use(cors());

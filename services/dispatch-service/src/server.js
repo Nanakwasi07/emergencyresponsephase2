@@ -15,7 +15,7 @@ const { Vehicle } = require('./models/Vehicle');
 
 const app = express();
 const server = http.createServer(app);
-const PORT = process.env.DISPATCH_SERVICE_PORT || 3003;
+const PORT = process.env.PORT || process.env.DISPATCH_SERVICE_PORT || 3003;
 
 // Socket.IO for real-time vehicle tracking
 const io = new SocketIOServer(server, {

@@ -1,0 +1,27 @@
+# Dependencies — each service installs its own inside the image
+node_modules
+**/node_modules
+
+# Build outputs
+client/dist
+**/.cache
+
+# Local env files — secrets go in Render dashboard, not images
+.env
+.env.*
+!.env.example
+
+# Git
+.git
+.gitignore
+
+# Docs & reports
+*.docx
+*.pdf
+*.md
+Phase2_Report*
+
+# Editor
+.vscode
+*.log
+npm-debug.log*

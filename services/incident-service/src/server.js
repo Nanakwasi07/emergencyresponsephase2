@@ -10,7 +10,7 @@ const { connect: connectRabbitMQ, subscribe } = require('../../../common/messagi
 const { QUEUES, BINDINGS } = require('../../../common/messaging/events');
 
 const app = express();
-const PORT = process.env.INCIDENT_SERVICE_PORT || 3002;
+const PORT = process.env.PORT || process.env.INCIDENT_SERVICE_PORT || 3002;
 
 // Middleware
 app.use(cors());
