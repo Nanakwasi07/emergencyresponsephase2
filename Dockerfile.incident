@@ -1,26 +1,30 @@
 # ─────────────────────────────────────────────────────────────────────────────
-# Analytics Service — build context must be PROJECT ROOT.
-# Render: Root Directory = repo root, Dockerfile Path = services/analytics-service/Dockerfile
+# Incident Service
+# Build context: PROJECT ROOT
+#
+# Render configuration:
+#   Root Directory  → (leave blank — repo root)
+#   Dockerfile Path → Dockerfile.incident
 # ─────────────────────────────────────────────────────────────────────────────
 
 FROM node:20-alpine AS deps
-WORKDIR /app
+WORKDIR /build
 
-COPY services/analytics-service/package*.json ./services/analytics-service/
-RUN cd services/analytics-service && npm ci --omit=dev
+COPY services/incident-service/package*.json ./
+RUN npm ci --omit=dev
 
 FROM node:20-alpine
 WORKDIR /app
 
 COPY common/ ./common/
-COPY services/analytics-service/src/ ./services/analytics-service/src/
-COPY services/analytics-service/package.json ./services/analytics-service/
-COPY --from=deps /app/services/analytics-service/node_modules ./services/analytics-service/node_modules
+COPY services/incident-service/src/ ./services/incident-service/src/
+COPY services/incident-service/package.json ./services/incident-service/
+COPY --from=deps /build/node_modules ./services/incident-service/node_modules
 
 ENV NODE_ENV=production
 
-WORKDIR /app/services/analytics-service
+WORKDIR /app/services/incident-service
 
-EXPOSE 3004
+EXPOSE 3002
 
 CMD ["node", "src/server.js"]

@@ -32,8 +32,8 @@ services:
   # ── Auth Service ────────────────────────────────────────────────────────────
   auth-service:
     build:
-      context: .                                      # project root (needs common/)
-      dockerfile: services/auth-service/Dockerfile
+      context: .
+      dockerfile: Dockerfile.auth
     container_name: erp-auth
     ports:
       - "3001:3001"
@@ -56,7 +56,7 @@ services:
   incident-service:
     build:
       context: .
-      dockerfile: services/incident-service/Dockerfile
+      dockerfile: Dockerfile.incident
     container_name: erp-incident
     ports:
       - "3002:3002"
@@ -77,7 +77,7 @@ services:
   dispatch-service:
     build:
       context: .
-      dockerfile: services/dispatch-service/Dockerfile
+      dockerfile: Dockerfile.dispatch
     container_name: erp-dispatch
     ports:
       - "3003:3003"   # REST + Socket.IO on same port
@@ -97,7 +97,7 @@ services:
   analytics-service:
     build:
       context: .
-      dockerfile: services/analytics-service/Dockerfile
+      dockerfile: Dockerfile.analytics
     container_name: erp-analytics
     ports:
       - "3004:3004"
@@ -119,6 +119,8 @@ services:
       context: ./client
       dockerfile: Dockerfile
       args:
+        # The browser hits these URLs directly, so use the host machine's
+        # localhost (the ports are mapped via Docker port bindings above).
         VITE_AUTH_URL: http://localhost:3001
         VITE_INCIDENT_URL: http://localhost:3002
         VITE_DISPATCH_URL: http://localhost:3003

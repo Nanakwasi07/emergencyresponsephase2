@@ -1,0 +1,38 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Auth Service
+# Build context: PROJECT ROOT  (this file lives at the repo root)
+#
+# Render configuration:
+#   Root Directory  → (leave blank — repo root)
+#   Dockerfile Path → Dockerfile.auth
+# ─────────────────────────────────────────────────────────────────────────────
+
+# ── Stage 1: install production dependencies ──────────────────────────────────
+FROM node:20-alpine AS deps
+WORKDIR /build
+
+COPY services/auth-service/package*.json ./
+RUN npm ci --omit=dev
+
+# ── Stage 2: lean runtime image ───────────────────────────────────────────────
+FROM node:20-alpine
+WORKDIR /app
+
+# Shared common modules (required by all services via '../../../common/' paths)
+COPY common/ ./common/
+
+# Service files
+COPY services/auth-service/src/ ./services/auth-service/src/
+COPY services/auth-service/package.json ./services/auth-service/
+
+# Pre-built node_modules from Stage 1
+COPY --from=deps /build/node_modules ./services/auth-service/node_modules
+
+ENV NODE_ENV=production
+
+WORKDIR /app/services/auth-service
+
+EXPOSE 3001
+
+# Render injects $PORT; server.js reads process.env.PORT first
+CMD ["node", "src/server.js"]

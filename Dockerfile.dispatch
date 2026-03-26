@@ -1,26 +1,31 @@
 # ─────────────────────────────────────────────────────────────────────────────
-# Incident Service — build context must be the PROJECT ROOT.
-# Render: Root Directory = repo root, Dockerfile Path = services/incident-service/Dockerfile
+# Dispatch Service  (Express + Socket.IO on the same port)
+# Build context: PROJECT ROOT
+#
+# Render configuration:
+#   Root Directory  → (leave blank — repo root)
+#   Dockerfile Path → Dockerfile.dispatch
 # ─────────────────────────────────────────────────────────────────────────────
 
 FROM node:20-alpine AS deps
-WORKDIR /app
+WORKDIR /build
 
-COPY services/incident-service/package*.json ./services/incident-service/
-RUN cd services/incident-service && npm ci --omit=dev
+COPY services/dispatch-service/package*.json ./
+RUN npm ci --omit=dev
 
 FROM node:20-alpine
 WORKDIR /app
 
 COPY common/ ./common/
-COPY services/incident-service/src/ ./services/incident-service/src/
-COPY services/incident-service/package.json ./services/incident-service/
-COPY --from=deps /app/services/incident-service/node_modules ./services/incident-service/node_modules
+COPY services/dispatch-service/src/ ./services/dispatch-service/src/
+COPY services/dispatch-service/package.json ./services/dispatch-service/
+COPY --from=deps /build/node_modules ./services/dispatch-service/node_modules
 
 ENV NODE_ENV=production
 
-WORKDIR /app/services/incident-service
+WORKDIR /app/services/dispatch-service
 
-EXPOSE 3002
+# HTTP + Socket.IO share this port
+EXPOSE 3003
 
 CMD ["node", "src/server.js"]
