@@ -19,7 +19,7 @@ WORKDIR /app
 COPY common/ ./common/
 COPY services/dispatch-service/src/ ./services/dispatch-service/src/
 COPY services/dispatch-service/package.json ./services/dispatch-service/
-COPY --from=deps /build/node_modules ./services/dispatch-service/node_modules
+COPY --from=deps /build/node_modules ./node_modules
 
 ENV NODE_ENV=production
 

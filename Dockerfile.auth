@@ -25,8 +25,8 @@ COPY common/ ./common/
 COPY services/auth-service/src/ ./services/auth-service/src/
 COPY services/auth-service/package.json ./services/auth-service/
 
-# Pre-built node_modules from Stage 1
-COPY --from=deps /build/node_modules ./services/auth-service/node_modules
+# Pre-built node_modules at /app so both common/ and services/ can resolve them
+COPY --from=deps /build/node_modules ./node_modules
 
 ENV NODE_ENV=production
 
