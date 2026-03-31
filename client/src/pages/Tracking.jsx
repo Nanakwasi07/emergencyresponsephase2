@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useCallback } from 'react';
+import { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import {
@@ -114,6 +114,44 @@ function MapController({ mapRef }) {
   return null;
 }
 
+// Memoized vehicle marker component
+function VehicleMarker({ vehicle, isSimActive, VEHICLE_COLORS, simIncidentType }) {
+  const icon = useMemo(
+    () => vehicleMapIcon(vehicle.vehicleType, isSimActive),
+    [vehicle.vehicleType, isSimActive]
+  );
+
+  return (
+    <Marker
+      position={[vehicle.latitude, vehicle.longitude]}
+      icon={icon}
+    >
+      <Popup>
+        <div className="text-slate-900 text-sm min-w-[170px]">
+          <div className="font-bold text-base mb-2 capitalize">
+            {vehicle.vehicleType?.replace('_', ' ')}
+            {isSimActive && <span className="ml-1 text-yellow-600 text-xs">[SIM]</span>}
+          </div>
+          <table className="w-full text-xs">
+            <tbody>
+              <tr><td className="text-slate-500 pr-2 py-0.5">Status</td><td className="font-medium">{vehicle.status}</td></tr>
+              <tr><td className="text-slate-500 pr-2 py-0.5">Driver</td><td>{vehicle.driverName || 'N/A'}</td></tr>
+              <tr><td className="text-slate-500 pr-2 py-0.5">Lat</td><td className="font-mono">{vehicle.latitude?.toFixed(5)}</td></tr>
+              <tr><td className="text-slate-500 pr-2 py-0.5">Lon</td><td className="font-mono">{vehicle.longitude?.toFixed(5)}</td></tr>
+              {vehicle.lastLocationUpdate && (
+                <tr>
+                  <td className="text-slate-500 pr-2 py-0.5">Updated</td>
+                  <td>{new Date(vehicle.lastLocationUpdate).toLocaleTimeString()}</td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </Popup>
+    </Marker>
+  );
+}
+
 // ── Component ─────────────────────────────────────────────────────────────────
 
 export default function Tracking() {
@@ -133,7 +171,11 @@ export default function Tracking() {
   const [simTotal] = useState(12);
   const [simTarget, setSimTarget] = useState(null);     // { lat, lon, name }
   const [simVehicleId, setSimVehicleId] = useState(null);
+  const [simIncidentId, setSimIncidentId] = useState(null);
   const simIntervalRef = useRef(null);
+  // Refs so stopSimulation can access current IDs without stale closure
+  const simVehicleIdRef = useRef(null);
+  const simIncidentIdRef = useRef(null);
 
   // ── Fetch vehicles ─────────────────────────────────────────────────────────
   const fetchVehicles = useCallback(async () => {
@@ -199,10 +241,29 @@ export default function Tracking() {
       clearInterval(simIntervalRef.current);
       simIntervalRef.current = null;
     }
+
+    // Reset vehicle status to available
+    const vehicleId = simVehicleIdRef.current;
+    const incidentId = simIncidentIdRef.current;
+    if (vehicleId) {
+      dispatchAPI.put(`/vehicles/${vehicleId}/status`, { status: 'available' }).catch(() => {});
+      setVehicles((prev) => {
+        if (!prev[vehicleId]) return prev;
+        return { ...prev, [vehicleId]: { ...prev[vehicleId], status: 'available' } };
+      });
+    }
+    // Mark incident resolved if stopped early
+    if (incidentId) {
+      incidentAPI.put(`/incidents/${incidentId}/status`, { status: 'Resolved' }).catch(() => {});
+    }
+
+    simVehicleIdRef.current = null;
+    simIncidentIdRef.current = null;
     setSimStatus('idle');
     setSimStep(0);
     setSimTarget(null);
     setSimVehicleId(null);
+    setSimIncidentId(null);
     setSimMessage('');
   }, []);
 
@@ -225,6 +286,9 @@ export default function Tracking() {
     const target = GHANA_LOCATIONS[Math.floor(Math.random() * GHANA_LOCATIONS.length)];
     setSimTarget(target);
     setSimVehicleId(candidate._id);
+    simVehicleIdRef.current = candidate._id;
+    setSimIncidentId(null);
+    simIncidentIdRef.current = null;
     setSimStatus('running');
     setSimStep(0);
     setSimMessage(`${neededVehicleType.replace('_', ' ')} responding to ${simIncidentType} at ${target.name}`);
@@ -236,15 +300,37 @@ export default function Tracking() {
       mapRef.current.flyTo([midLat, midLon], 11, { duration: 1.5 });
     }
 
-    // Create real incident in backend (fire and forget)
-    incidentAPI.post('/incidents', {
-      citizenName: 'Simulation Test',
-      incidentType: simIncidentType,
-      latitude: target.lat,
-      longitude: target.lon,
-      notes: `[SIMULATED] ${simIncidentType} incident at ${target.name}`,
-      adminId: user?._id || user?.userId || 'simulation',
-    }).catch(() => {});
+    // Create real incident in backend and capture its ID
+    let createdIncidentId = null;
+    try {
+      const { data } = await incidentAPI.post('/incidents', {
+        citizenName: 'Simulation Test',
+        incidentType: simIncidentType,
+        latitude: target.lat,
+        longitude: target.lon,
+        notes: `[SIMULATED] ${simIncidentType} incident at ${target.name}`,
+        adminId: user?._id || user?.userId || 'simulation',
+      });
+      createdIncidentId = data.incident?._id || null;
+      setSimIncidentId(createdIncidentId);
+      simIncidentIdRef.current = createdIncidentId;
+    } catch (err) {
+      console.warn('Simulate incident creation failed:', err.message);
+    }
+
+    // Mark vehicle as dispatched
+    try {
+      await dispatchAPI.put(`/vehicles/${candidate._id}/status`, {
+        status: 'dispatched',
+        ...(createdIncidentId && { incidentId: createdIncidentId }),
+      });
+      setVehicles((prev) => ({
+        ...prev,
+        [candidate._id]: { ...prev[candidate._id], status: 'dispatched' },
+      }));
+    } catch (err) {
+      console.warn('Simulate vehicle dispatch failed:', err.message);
+    }
 
     // Interpolate vehicle position over simTotal steps
     const startLat = candidate.latitude;
@@ -271,6 +357,20 @@ export default function Tracking() {
       if (step >= simTotal) {
         clearInterval(simIntervalRef.current);
         simIntervalRef.current = null;
+
+        // Mark vehicle on_scene and incident In Progress
+        dispatchAPI.put(`/vehicles/${candidate._id}/status`, { status: 'on_scene' })
+          .then(() => {
+            setVehicles((prev) => ({
+              ...prev,
+              [candidate._id]: { ...prev[candidate._id], status: 'on_scene' },
+            }));
+          })
+          .catch(() => {});
+        if (createdIncidentId) {
+          incidentAPI.put(`/incidents/${createdIncidentId}/status`, { status: 'In Progress' }).catch(() => {});
+        }
+
         setSimStatus('arrived');
         setSimMessage(`${neededVehicleType.replace('_', ' ')} arrived at ${target.name}`);
       }
@@ -414,6 +514,9 @@ export default function Tracking() {
                   <div className="flex items-center gap-2">
                     <span className="w-2 h-2 bg-yellow-400 rounded-full animate-pulse flex-shrink-0" />
                     <p className="text-xs text-yellow-300 font-medium">SIMULATING</p>
+                    <span className="ml-auto px-1.5 py-0.5 bg-red-900/40 border border-red-700/50 rounded text-xs text-red-300 font-medium">
+                      OPEN
+                    </span>
                   </div>
                   <p className="text-xs text-slate-400 leading-relaxed">{simMessage}</p>
                   {/* Progress bar */}
@@ -430,11 +533,23 @@ export default function Tracking() {
               )}
 
               {simStatus === 'arrived' && (
-                <div className="px-3 py-2 bg-green-900/30 border border-green-700/40 rounded-lg">
-                  <p className="text-xs text-green-300 font-medium flex items-center gap-1.5">
-                    <HiExclamationTriangle className="w-3.5 h-3.5 text-green-400" />
-                    {simMessage}
-                  </p>
+                <div className="space-y-2">
+                  <div className="px-3 py-2 bg-green-900/30 border border-green-700/40 rounded-lg">
+                    <p className="text-xs text-green-300 font-medium flex items-center gap-1.5">
+                      <HiExclamationTriangle className="w-3.5 h-3.5 text-green-400" />
+                      {simMessage}
+                    </p>
+                    <p className="text-xs text-slate-400 mt-1">
+                      Incident status: <span className="text-yellow-300 font-medium">In Progress</span>
+                    </p>
+                  </div>
+                  <button
+                    onClick={stopSimulation}
+                    className="btn-secondary w-full text-xs py-2 flex items-center justify-center gap-1.5"
+                  >
+                    <HiStop className="w-3.5 h-3.5" />
+                    Resolve &amp; Reset
+                  </button>
                 </div>
               )}
 
@@ -501,34 +616,13 @@ export default function Tracking() {
             .map((v) => {
               const isSimActive = simStatus === 'running' && v._id === simVehicleId;
               return (
-                <Marker
+                <VehicleMarker
                   key={v._id}
-                  position={[v.latitude, v.longitude]}
-                  icon={vehicleMapIcon(v.vehicleType, isSimActive)}
-                >
-                  <Popup>
-                    <div className="text-slate-900 text-sm min-w-[170px]">
-                      <div className="font-bold text-base mb-2 capitalize">
-                        {v.vehicleType?.replace('_', ' ')}
-                        {isSimActive && <span className="ml-1 text-yellow-600 text-xs">[SIM]</span>}
-                      </div>
-                      <table className="w-full text-xs">
-                        <tbody>
-                          <tr><td className="text-slate-500 pr-2 py-0.5">Status</td><td className="font-medium">{v.status}</td></tr>
-                          <tr><td className="text-slate-500 pr-2 py-0.5">Driver</td><td>{v.driverName || 'N/A'}</td></tr>
-                          <tr><td className="text-slate-500 pr-2 py-0.5">Lat</td><td className="font-mono">{v.latitude?.toFixed(5)}</td></tr>
-                          <tr><td className="text-slate-500 pr-2 py-0.5">Lon</td><td className="font-mono">{v.longitude?.toFixed(5)}</td></tr>
-                          {v.lastLocationUpdate && (
-                            <tr>
-                              <td className="text-slate-500 pr-2 py-0.5">Updated</td>
-                              <td>{new Date(v.lastLocationUpdate).toLocaleTimeString()}</td>
-                            </tr>
-                          )}
-                        </tbody>
-                      </table>
-                    </div>
-                  </Popup>
-                </Marker>
+                  vehicle={v}
+                  isSimActive={isSimActive}
+                  VEHICLE_COLORS={VEHICLE_COLORS}
+                  simIncidentType={simIncidentType}
+                />
               );
             })}
 
