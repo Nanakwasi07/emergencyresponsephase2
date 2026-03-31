@@ -37,3 +37,7 @@ coverage/
 # Temporary files
 tmp/
 temp/
+
+/GROUP18_Phase3_ClientInterface_Report.pdf
+/seed.js
+

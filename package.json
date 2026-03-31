@@ -16,7 +16,9 @@
     "auth:dev": "cd services/auth-service && npm run dev",
     "incident:dev": "cd services/incident-service && npm run dev",
     "dispatch:dev": "cd services/dispatch-service && npm run dev",
-    "analytics:dev": "cd services/analytics-service && npm run dev"
+    "analytics:dev": "cd services/analytics-service && npm run dev",
+    "seed": "node seed.js",
+    "seed:force": "node seed.js --force"
   },
   "keywords": [
     "emergency",
@@ -33,7 +35,9 @@
   "dependencies": {
     "amqplib": "^0.10.9",
     "axios": "^1.13.6",
+    "dotenv": "^16.3.1",
     "joi": "^17.13.3",
-    "jsonwebtoken": "^9.0.3"
+    "jsonwebtoken": "^9.0.3",
+    "mongoose": "^8.0.0"
   }
 }

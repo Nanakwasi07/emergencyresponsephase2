@@ -8,6 +8,8 @@ import Incidents from './pages/Incidents.jsx';
 import Dispatch from './pages/Dispatch.jsx';
 import Tracking from './pages/Tracking.jsx';
 import Analytics from './pages/Analytics.jsx';
+import AdminManagement from './pages/AdminManagement.jsx';
+import InstitutionManagement from './pages/InstitutionManagement.jsx';
 
 export default function App() {
   return (
@@ -29,6 +31,8 @@ export default function App() {
             <Route path="dispatch" element={<Dispatch />} />
             <Route path="tracking" element={<Tracking />} />
             <Route path="analytics" element={<Analytics />} />
+            <Route path="manage-admins" element={<AdminManagement />} />
+            <Route path="manage-institutions" element={<InstitutionManagement />} />
           </Route>
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Routes>

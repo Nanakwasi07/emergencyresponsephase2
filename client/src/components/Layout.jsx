@@ -7,6 +7,8 @@ import {
   HiChartBar,
   HiArrowRightOnRectangle,
   HiUser,
+  HiUsers,
+  HiBuildingOffice2,
 } from 'react-icons/hi2';
 import { MdCrisisAlert } from 'react-icons/md';
 import { useAuth } from '../context/AuthContext.jsx';
@@ -17,6 +19,16 @@ const NAV = [
   { to: '/dispatch', icon: HiSignal, label: 'Dispatch' },
   { to: '/tracking', icon: HiMapPin, label: 'Live Tracking' },
   { to: '/analytics', icon: HiChartBar, label: 'Analytics' },
+];
+
+const ADMIN_NAV = [
+  { to: '/manage-admins', icon: HiUsers, label: 'Manage Admins', roles: ['admin'] },
+  {
+    to: '/manage-institutions',
+    icon: HiBuildingOffice2,
+    label: 'Manage Institutions',
+    roles: ['admin', 'hospital_admin', 'police_admin', 'fire_admin'],
+  },
 ];
 
 const ROLE_LABELS = {
@@ -42,6 +54,11 @@ export default function Layout() {
     navigate('/login');
   };
 
+  // Filter admin nav items based on user role
+  const visibleAdminNav = ADMIN_NAV.filter((item) =>
+    item.roles.includes(user?.role)
+  );
+
   return (
     <div className="flex h-screen overflow-hidden bg-slate-900">
       {/* Sidebar */}
@@ -60,6 +77,23 @@ export default function Layout() {
         {/* Nav */}
         <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
           {NAV.map(({ to, icon: Icon, label }) => (
+            <NavLink
+              key={to}
+              to={to}
+              className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}
+            >
+              <Icon className="w-4 h-4 flex-shrink-0" />
+              <span>{label}</span>
+            </NavLink>
+          ))}
+
+          {/* Divider */}
+          {visibleAdminNav.length > 0 && (
+            <div className="my-2 border-t border-slate-700" />
+          )}
+
+          {/* Admin Nav */}
+          {visibleAdminNav.map(({ to, icon: Icon, label }) => (
             <NavLink
               key={to}
               to={to}
