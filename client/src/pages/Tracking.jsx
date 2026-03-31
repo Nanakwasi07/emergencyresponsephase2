@@ -40,7 +40,7 @@ const SVG_ICONS = {
   </svg>`,
 };
 
-// Red pin for simulated incident location
+// Red pin for incident location
 const INCIDENT_PIN_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 36" width="24" height="36">
   <path d="M12 0 C5.37 0 0 5.37 0 12 C0 21 12 36 12 36 S24 21 24 12 C24 5.37 18.63 0 12 0Z" fill="#ef4444" stroke="#fff" stroke-width="1.5"/>
   <circle cx="12" cy="12" r="4" fill="#fff"/>
@@ -72,6 +72,13 @@ const ROLE_VEHICLE_TYPES = {
   fire_admin: ['fire_truck'],
 };
 
+const ROLE_INCIDENT_TYPES = {
+  admin: null,
+  hospital_admin: ['medical', 'accident'],
+  police_admin: ['robbery', 'assault'],
+  fire_admin: ['fire', 'accident'],
+};
+
 const VEHICLE_ICONS_REACT = {
   ambulance: MdLocalHospital,
   police_car: MdLocalPolice,
@@ -93,20 +100,6 @@ const INCIDENT_TO_VEHICLE = {
   assault: 'police_car',
 };
 
-// Random locations across Ghana for simulation
-const GHANA_LOCATIONS = [
-  { lat: 5.6037, lon: -0.1870, name: 'Accra Central' },
-  { lat: 5.5502, lon: -0.2174, name: 'Tema' },
-  { lat: 6.6885, lon: -1.6244, name: 'Kumasi' },
-  { lat: 5.1053, lon: -1.2466, name: 'Cape Coast' },
-  { lat: 9.4008, lon: -0.8393, name: 'Tamale' },
-  { lat: 7.7408, lon: -2.0243, name: 'Sunyani' },
-  { lat: 5.7585, lon: -0.2168, name: 'Accra North' },
-  { lat: 6.0136, lon: -0.2672, name: 'Koforidua' },
-  { lat: 5.6310, lon: -0.0673, name: 'Tema Industrial' },
-  { lat: 5.9003, lon: -0.1872, name: 'Achimota' },
-];
-
 // Component that exposes map ref to parent
 function MapController({ mapRef }) {
   const map = useMap();
@@ -115,7 +108,7 @@ function MapController({ mapRef }) {
 }
 
 // Memoized vehicle marker component
-function VehicleMarker({ vehicle, isSimActive, VEHICLE_COLORS, simIncidentType }) {
+function VehicleMarker({ vehicle, isSimActive }) {
   const icon = useMemo(
     () => vehicleMapIcon(vehicle.vehicleType, isSimActive),
     [vehicle.vehicleType, isSimActive]
@@ -164,7 +157,6 @@ export default function Tracking() {
 
   // ── Simulation state ───────────────────────────────────────────────────────
   const [simOpen, setSimOpen] = useState(false);
-  const [simIncidentType, setSimIncidentType] = useState('fire');
   const [simStatus, setSimStatus] = useState('idle'); // idle | running | arrived | error
   const [simMessage, setSimMessage] = useState('');
   const [simStep, setSimStep] = useState(0);
@@ -176,6 +168,12 @@ export default function Tracking() {
   // Refs so stopSimulation can access current IDs without stale closure
   const simVehicleIdRef = useRef(null);
   const simIncidentIdRef = useRef(null);
+
+  // ── Open incidents state ───────────────────────────────────────────────────
+  const [openIncidents, setOpenIncidents] = useState([]);
+  const [incidentsLoading, setIncidentsLoading] = useState(false);
+  const [incidentsError, setIncidentsError] = useState('');
+  const [selectedIncident, setSelectedIncident] = useState(null);
 
   // ── Fetch vehicles ─────────────────────────────────────────────────────────
   const fetchVehicles = useCallback(async () => {
@@ -192,6 +190,26 @@ export default function Tracking() {
       console.error('Failed to fetch vehicles:', err);
     }
   }, [allowedTypes]);
+
+  // ── Fetch open incidents ───────────────────────────────────────────────────
+  const fetchOpenIncidents = useCallback(async () => {
+    setIncidentsLoading(true);
+    setIncidentsError('');
+    try {
+      const { data } = await incidentAPI.get('/incidents/open');
+      const all = Array.isArray(data) ? data : (data.incidents || []);
+      const allowedIncTypes = ROLE_INCIDENT_TYPES[user?.role];
+      const filtered = allowedIncTypes
+        ? all.filter((i) => allowedIncTypes.includes(i.incidentType))
+        : all;
+      setOpenIncidents(filtered);
+    } catch (err) {
+      setIncidentsError('Could not load incidents.');
+      console.error('Failed to fetch open incidents:', err);
+    } finally {
+      setIncidentsLoading(false);
+    }
+  }, [user]);
 
   // ── Socket.IO ──────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -235,6 +253,13 @@ export default function Tracking() {
     };
   }, [fetchVehicles, allowedTypes]);
 
+  // Fetch open incidents whenever the panel is opened
+  useEffect(() => {
+    if (!simOpen) return;
+    setSelectedIncident(null);
+    fetchOpenIncidents();
+  }, [simOpen, fetchOpenIncidents]);
+
   // ── Simulation logic ───────────────────────────────────────────────────────
   const stopSimulation = useCallback(() => {
     if (simIntervalRef.current) {
@@ -242,9 +267,9 @@ export default function Tracking() {
       simIntervalRef.current = null;
     }
 
-    // Reset vehicle status to available
     const vehicleId = simVehicleIdRef.current;
     const incidentId = simIncidentIdRef.current;
+
     if (vehicleId) {
       dispatchAPI.put(`/vehicles/${vehicleId}/status`, { status: 'available' }).catch(() => {});
       setVehicles((prev) => {
@@ -252,7 +277,6 @@ export default function Tracking() {
         return { ...prev, [vehicleId]: { ...prev[vehicleId], status: 'available' } };
       });
     }
-    // Mark incident resolved if stopped early
     if (incidentId) {
       incidentAPI.put(`/incidents/${incidentId}/status`, { status: 'Resolved' }).catch(() => {});
     }
@@ -268,7 +292,19 @@ export default function Tracking() {
   }, []);
 
   const startSimulation = useCallback(async () => {
-    const neededVehicleType = INCIDENT_TO_VEHICLE[simIncidentType];
+    if (!selectedIncident) {
+      setSimStatus('error');
+      setSimMessage('Please select an incident to respond to.');
+      return;
+    }
+
+    if (!selectedIncident.latitude || !selectedIncident.longitude) {
+      setSimStatus('error');
+      setSimMessage('Selected incident has no location data.');
+      return;
+    }
+
+    const neededVehicleType = INCIDENT_TO_VEHICLE[selectedIncident.incidentType];
     const vehicleList = Object.values(vehicles);
     const candidate = vehicleList.find(
       (v) => v.vehicleType === neededVehicleType && v.latitude != null
@@ -277,21 +313,25 @@ export default function Tracking() {
     if (!candidate) {
       setSimStatus('error');
       setSimMessage(
-        `No registered ${neededVehicleType.replace('_', ' ')} with a known location. Register one via the Dispatch API first.`
+        `No ${neededVehicleType.replace('_', ' ')} with a known location is available for this incident.`
       );
       return;
     }
 
-    // Pick a random Ghana location as the incident site
-    const target = GHANA_LOCATIONS[Math.floor(Math.random() * GHANA_LOCATIONS.length)];
+    const target = {
+      lat: selectedIncident.latitude,
+      lon: selectedIncident.longitude,
+      name: `${selectedIncident.incidentType} — ${selectedIncident.citizenName}`,
+    };
+
     setSimTarget(target);
     setSimVehicleId(candidate._id);
     simVehicleIdRef.current = candidate._id;
-    setSimIncidentId(null);
-    simIncidentIdRef.current = null;
+    setSimIncidentId(selectedIncident._id);
+    simIncidentIdRef.current = selectedIncident._id;
     setSimStatus('running');
     setSimStep(0);
-    setSimMessage(`${neededVehicleType.replace('_', ' ')} responding to ${simIncidentType} at ${target.name}`);
+    setSimMessage(`${neededVehicleType.replace('_', ' ')} responding to ${selectedIncident.incidentType} — ${selectedIncident.citizenName}`);
 
     // Fly map to midpoint
     if (mapRef.current) {
@@ -300,29 +340,11 @@ export default function Tracking() {
       mapRef.current.flyTo([midLat, midLon], 11, { duration: 1.5 });
     }
 
-    // Create real incident in backend and capture its ID
-    let createdIncidentId = null;
-    try {
-      const { data } = await incidentAPI.post('/incidents', {
-        citizenName: 'Simulation Test',
-        incidentType: simIncidentType,
-        latitude: target.lat,
-        longitude: target.lon,
-        notes: `[SIMULATED] ${simIncidentType} incident at ${target.name}`,
-        adminId: user?._id || user?.userId || 'simulation',
-      });
-      createdIncidentId = data.incident?._id || null;
-      setSimIncidentId(createdIncidentId);
-      simIncidentIdRef.current = createdIncidentId;
-    } catch (err) {
-      console.warn('Simulate incident creation failed:', err.message);
-    }
-
-    // Mark vehicle as dispatched
+    // Mark vehicle dispatched and incident Dispatched
     try {
       await dispatchAPI.put(`/vehicles/${candidate._id}/status`, {
         status: 'dispatched',
-        ...(createdIncidentId && { incidentId: createdIncidentId }),
+        incidentId: selectedIncident._id,
       });
       setVehicles((prev) => ({
         ...prev,
@@ -331,6 +353,8 @@ export default function Tracking() {
     } catch (err) {
       console.warn('Simulate vehicle dispatch failed:', err.message);
     }
+
+    incidentAPI.put(`/incidents/${selectedIncident._id}/status`, { status: 'Dispatched' }).catch(() => {});
 
     // Interpolate vehicle position over simTotal steps
     const startLat = candidate.latitude;
@@ -367,15 +391,13 @@ export default function Tracking() {
             }));
           })
           .catch(() => {});
-        if (createdIncidentId) {
-          incidentAPI.put(`/incidents/${createdIncidentId}/status`, { status: 'In Progress' }).catch(() => {});
-        }
+        incidentAPI.put(`/incidents/${selectedIncident._id}/status`, { status: 'In Progress' }).catch(() => {});
 
         setSimStatus('arrived');
-        setSimMessage(`${neededVehicleType.replace('_', ' ')} arrived at ${target.name}`);
+        setSimMessage(`${neededVehicleType.replace('_', ' ')} arrived at ${selectedIncident.citizenName}'s location`);
       }
     }, 1500);
-  }, [simIncidentType, vehicles, simTotal, user]);
+  }, [selectedIncident, vehicles, simTotal]);
 
   // Clean up on unmount
   useEffect(() => () => {
@@ -383,7 +405,7 @@ export default function Tracking() {
   }, []);
 
   const vehicleList = Object.values(vehicles);
-  const simVehicleType = INCIDENT_TO_VEHICLE[simIncidentType];
+  const simVehicleType = selectedIncident ? INCIDENT_TO_VEHICLE[selectedIncident.incidentType] : null;
 
   return (
     <div className="flex" style={{ height: '100vh' }}>
@@ -482,31 +504,60 @@ export default function Tracking() {
 
           {simOpen && (
             <div className="px-4 pb-4 space-y-3">
-              {/* Incident type selector */}
+
+              {/* Incident selector */}
               <div>
-                <label className="label text-xs">Incident Type</label>
-                <select
-                  className="input text-sm"
-                  value={simIncidentType}
-                  onChange={(e) => setSimIncidentType(e.target.value)}
-                  disabled={simStatus === 'running'}
-                >
-                  {['fire', 'medical', 'accident', 'robbery', 'assault'].map((t) => (
-                    <option key={t} value={t}>
-                      {t.charAt(0).toUpperCase() + t.slice(1)}
-                    </option>
-                  ))}
-                </select>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="label text-xs">Open Incident</label>
+                  <button
+                    onClick={fetchOpenIncidents}
+                    disabled={incidentsLoading || simStatus === 'running'}
+                    className="text-xs text-slate-400 hover:text-slate-200 flex items-center gap-1 disabled:opacity-40"
+                  >
+                    <HiArrowPath className={`w-3 h-3 ${incidentsLoading ? 'animate-spin' : ''}`} />
+                    Refresh
+                  </button>
+                </div>
+
+                {incidentsLoading ? (
+                  <p className="text-xs text-slate-400 py-2">Loading incidents…</p>
+                ) : incidentsError ? (
+                  <p className="text-xs text-red-400 py-2">{incidentsError}</p>
+                ) : openIncidents.length === 0 ? (
+                  <p className="text-xs text-slate-500 px-3 py-2 bg-slate-700/40 rounded-lg">
+                    No open incidents for your role.
+                  </p>
+                ) : (
+                  <select
+                    className="input text-sm"
+                    value={selectedIncident?._id || ''}
+                    onChange={(e) => {
+                      const inc = openIncidents.find((i) => i._id === e.target.value) || null;
+                      setSelectedIncident(inc);
+                    }}
+                    disabled={simStatus === 'running'}
+                  >
+                    <option value="">— Choose an incident —</option>
+                    {openIncidents.map((inc) => (
+                      <option key={inc._id} value={inc._id}>
+                        {inc.incidentType.toUpperCase()} · {inc.citizenName} · {inc.latitude?.toFixed(3)},{inc.longitude?.toFixed(3)}
+                      </option>
+                    ))}
+                  </select>
+                )}
               </div>
 
-              {/* Auto vehicle type */}
-              <div className="flex items-center gap-2 px-3 py-2 bg-slate-700/50 rounded-lg text-xs text-slate-300">
-                {(() => {
-                  const Icon = VEHICLE_ICONS_REACT[simVehicleType] || MdLocalHospital;
-                  return <Icon className={`w-4 h-4 flex-shrink-0 ${VEHICLE_COLORS[simVehicleType]}`} />;
-                })()}
-                <span>Dispatches: <strong className="text-slate-100">{simVehicleType?.replace('_', ' ')}</strong></span>
-              </div>
+              {/* Auto vehicle type + incident status */}
+              {selectedIncident && simVehicleType && (
+                <div className="flex items-center gap-2 px-3 py-2 bg-slate-700/50 rounded-lg text-xs text-slate-300">
+                  {(() => {
+                    const Icon = VEHICLE_ICONS_REACT[simVehicleType] || MdLocalHospital;
+                    return <Icon className={`w-4 h-4 flex-shrink-0 ${VEHICLE_COLORS[simVehicleType]}`} />;
+                  })()}
+                  <span>Dispatches: <strong className="text-slate-100">{simVehicleType.replace('_', ' ')}</strong></span>
+                  <span className="ml-auto text-slate-500 capitalize">{selectedIncident.status}</span>
+                </div>
+              )}
 
               {/* Status / progress */}
               {simStatus === 'running' && (
@@ -519,7 +570,6 @@ export default function Tracking() {
                     </span>
                   </div>
                   <p className="text-xs text-slate-400 leading-relaxed">{simMessage}</p>
-                  {/* Progress bar */}
                   <div className="w-full bg-slate-700 rounded-full h-1.5">
                     <div
                       className="h-1.5 bg-yellow-400 rounded-full transition-all duration-700"
@@ -571,11 +621,12 @@ export default function Tracking() {
                   <HiStop className="w-4 h-4" />
                   Stop Simulation
                 </button>
-              ) : (
+              ) : simStatus !== 'arrived' && (
                 <button
                   onClick={startSimulation}
-                  className="btn-primary w-full text-sm flex items-center justify-center gap-2"
-                  style={{ background: simStatus === 'running' ? undefined : '#ca8a04' }}
+                  disabled={!selectedIncident || openIncidents.length === 0}
+                  className="btn-primary w-full text-sm flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed"
+                  style={{ background: '#ca8a04' }}
                 >
                   <HiPlay className="w-4 h-4" />
                   Start Simulation
@@ -621,19 +672,18 @@ export default function Tracking() {
                   vehicle={v}
                   isSimActive={isSimActive}
                   VEHICLE_COLORS={VEHICLE_COLORS}
-                  simIncidentType={simIncidentType}
                 />
               );
             })}
 
-          {/* Simulated incident pin */}
+          {/* Incident pin */}
           {simTarget && (simStatus === 'running' || simStatus === 'arrived') && (
             <Marker position={[simTarget.lat, simTarget.lon]} icon={incidentPinIcon}>
               <Popup>
                 <div className="text-slate-900 text-sm">
                   <div className="font-bold mb-1 text-red-600">Incident Site</div>
-                  <p className="text-xs">{simTarget.name}</p>
-                  <p className="text-xs capitalize mt-0.5 text-slate-500">{simIncidentType} incident</p>
+                  <p className="text-xs">{selectedIncident?.citizenName}</p>
+                  <p className="text-xs capitalize mt-0.5 text-slate-500">{selectedIncident?.incidentType} incident</p>
                   {simStatus === 'arrived' && (
                     <p className="text-xs text-green-600 font-medium mt-1">Responder on scene</p>
                   )}
