@@ -24,6 +24,10 @@ const userSchema = new mongoose.Schema(
       enum: ['admin', 'hospital_admin', 'police_admin', 'fire_admin'],
       required: true
     },
+    institutionId: {
+      type: String,
+      default: null
+    },
     isActive: {
       type: Boolean,
       default: true

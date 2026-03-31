@@ -52,14 +52,14 @@ const { EVENTS } = require('../../../../common/messaging/events');
  */
 router.post('/register', validateRequest(schemas.registerUser), async (req, res) => {
   try {
-    const { name, email, password, role } = req.validatedBody;
+    const { name, email, password, role, institutionId } = req.validatedBody;
 
     const existingUser = await User.findOne({ email });
     if (existingUser) {
       return res.status(400).json({ error: 'User already exists' });
     }
 
-    const user = new User({ name, email, passwordHash: password, role });
+    const user = new User({ name, email, passwordHash: password, role, institutionId: institutionId || null });
     await user.save();
 
     // Publish event for analytics

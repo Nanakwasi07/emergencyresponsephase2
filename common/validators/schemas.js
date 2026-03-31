@@ -7,7 +7,8 @@ const schemas = {
     password: Joi.string().required().min(6),
     role: Joi.string()
       .valid('admin', 'hospital_admin', 'police_admin', 'fire_admin', 'ambulance_driver')
-      .required()
+      .required(),
+    institutionId: Joi.string().optional()
   }),
 
   loginUser: Joi.object({
